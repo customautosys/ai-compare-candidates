@@ -1,0 +1,29 @@
+{
+	"name": "ai-compare-candidates",
+	"version": "0.0.1",
+	"description": "Compare and rank multiple candidate objects using artificial intelligence retrieval augmented generation, providing the rationale",
+	"main": "index.mjs",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/customautosys/ai-compare-candidates.git"
+	},
+	"keywords": [
+		"artificial",
+		"intelligence",
+		"candidates",
+		"compare",
+		"retrieval",
+		"augmented",
+		"generation"
+	],
+	"author": "Wilson Foo Yu Kang",
+	"license": "CC-BY-NC-SA-4.0",
+	"bugs": {
+		"url": "https://github.com/customautosys/ai-compare-candidates/issues"
+	},
+	"homepage": "https://github.com/customautosys/ai-compare-candidates#readme",
+	"packageManager": "yarn@4.12.0"
+}
