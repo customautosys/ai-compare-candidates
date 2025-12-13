@@ -4,7 +4,7 @@
 	"description": "Compare and rank multiple candidate objects using artificial intelligence retrieval augmented generation, providing the rationale",
 	"main": "index.mjs",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"build": "tsc --noEmit && tsdown --config tsdown.config.ts"
 	},
 	"repository": {
 		"type": "git",
@@ -29,5 +29,9 @@
 	"dependencies": {
 		"@huggingface/transformers": "^3.8.1",
 		"langchain": "^1.2.0"
+	},
+	"devDependencies": {
+		"tsdown": "^0.17.3",
+		"typescript": "^5.9.3"
 	}
 }
