@@ -186,6 +186,7 @@ var AICompareCandidates = class extends Embeddings {
 			eos_token_id
 		});
 		rationale = (Array.isArray(rankingArray?.[0]) ? rankingArray?.[0]?.[0] : rankingArray[0]).generated_text.toString().trim().replace(/(\*\*)|(<\/?s>)|(\[.*?\])\s*/g, "");
+		if (this.DEBUG) console.log("Generated rationale: " + rationale);
 		let rationaleResponseIndex = rationale.indexOf("### Response:");
 		if (rationaleResponseIndex >= 0) rationaleResponseIndex += 13;
 		else rationaleResponseIndex = 0;
@@ -202,6 +203,7 @@ var AICompareCandidates = class extends Embeddings {
 			if (selectedCandidate) return selectedCandidate;
 			return null;
 		}).filter(Boolean);
+		if (this.DEBUG) console.log("Selected candidates", selectedCandidates);
 		return {
 			rationale,
 			selectedCandidates
