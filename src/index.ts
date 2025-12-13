@@ -305,11 +305,13 @@ export class AICompareCandidates extends Embeddings{
 		});
 		let ranking=Array.isArray(rankingArray?.[0])?rankingArray?.[0]?.[0]:rankingArray[0];
 		rationale=ranking.generated_text.toString().trim().replace(/(\*\*)|(<\/?s>)|(\[.*?\])\s*/g, '');
+		if(this.DEBUG)console.log('Generated rationale: '+rationale);
 		let rationaleResponseIndex=rationale.indexOf('### Response:');
 		if(rationaleResponseIndex>=0)rationaleResponseIndex+='### Response:'.length;
 		else rationaleResponseIndex=0;
 		rationale=rationale.substring(rationaleResponseIndex);
 		if(!rationale)throw new Error('No rationale generated');
+
 		let identifiers=extractIdentifiersFromRationale(rationale);
 		if(identifiers.length>candidatesForFinalSelection)identifiers=identifiers.slice(0,candidatesForFinalSelection);
 		selectedCandidates=identifiers.map(identifier=>{
@@ -321,6 +323,7 @@ export class AICompareCandidates extends Embeddings{
 			if(selectedCandidate)return selectedCandidate;
 			return null;
 		}).filter(Boolean);
+		if(this.DEBUG)console.log('Selected candidates',selectedCandidates);
 
 		return{
 			rationale,
