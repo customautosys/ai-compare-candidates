@@ -25,5 +25,8 @@
 		"url": "https://github.com/customautosys/ai-compare-candidates/issues"
 	},
 	"homepage": "https://github.com/customautosys/ai-compare-candidates#readme",
-	"packageManager": "yarn@4.12.0"
+	"packageManager": "yarn@4.12.0",
+	"dependencies": {
+		"@huggingface/transformers": "^3.8.1"
+	}
 }

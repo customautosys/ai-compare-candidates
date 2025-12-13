@@ -14,8 +14,9 @@ After performing a git clone:
 npm install -g yarn
 ```
 
-1. Remove the line "packageManager": "yarn@4.12.0" and the preceding comma in package.json
-2. 
+1. Remove the line ```"packageManager": "yarn@4.12.0"``` and the preceding comma in package.json
+2. Remove the line ```yarnPath: .yarn/releases/yarn-4.12.0.cjs``` from .yarnrc.yml
+3. 
 
 ```bash
 yarn set version 4.12.0
