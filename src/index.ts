@@ -20,7 +20,7 @@ export class AICompareCandidates extends Embeddings{
 	DEBUG=true;
 
 	generator:TextGenerationPipeline|null=null;
-	generatorModelName='Xenova/LaMini-Neo-125M';
+	generatorModelName='Xenova/LaMini-Cerebras-256M';
 	generatorPromise:Promise<TextGenerationPipeline>|null=null;
 	generatorProgressInfo:ProgressInfo=<ProgressInfo>{};
 	generatorProgressCallback:ProgressCallback|null=null;
