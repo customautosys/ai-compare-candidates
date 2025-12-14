@@ -1,0 +1,35 @@
+{
+	"name": "ai-compare-candidates-example",
+	"version": "0.0.1",
+	"description": "An example for the ai-compare-candidates library",
+	"productName": "AI Compare Candidates Example",
+	"author": "Wilson Foo Yu Kang <wilson.foo@customautosys.com>",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"dev": "quasar dev",
+		"build": "quasar build",
+		"postinstall": "quasar prepare"
+	},
+	"dependencies": {
+		"@quasar/extras": "^1.16.4",
+		"jsan": "^3.1.14",
+		"pinia": "^3.0.1",
+		"quasar": "^2.16.0",
+		"vue": "^3.5.22",
+		"vue-router": "^4.0.12"
+	},
+	"devDependencies": {
+		"@quasar/app-vite": "^2.1.0",
+		"@types/jsan": "^3",
+		"@types/node": "^20.5.9",
+		"ai-compare-candidates": "workspace:*",
+		"autoprefixer": "^10.4.2",
+		"typescript": "^5.9.2"
+	},
+	"engines": {
+		"node": "^28 || ^26 || ^24 || ^22 || ^20",
+		"npm": ">= 6.13.4",
+		"yarn": ">= 1.21.1"
+	}
+}

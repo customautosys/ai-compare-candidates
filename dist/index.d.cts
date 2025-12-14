@@ -1,6 +1,6 @@
+import * as _huggingface_transformers_types_env0 from "@huggingface/transformers/types/env";
 import { FeatureExtractionPipeline, PreTrainedTokenizer, ProgressCallback, ProgressInfo, SummarizationPipeline, TextGenerationPipeline } from "@huggingface/transformers";
 import { Embeddings } from "@langchain/core/embeddings";
-import * as _huggingface_transformers_types_env0 from "@huggingface/transformers/types/env";
 
 //#region src/index.d.ts
 declare class AICompareCandidates extends Embeddings {
@@ -131,4 +131,4 @@ declare namespace AICompareCandidates {
 }
 //#endregion
 export { AICompareCandidates, AICompareCandidates as default };
-//# sourceMappingURL=index.d.mts.map
+//# sourceMappingURL=index.d.cts.map

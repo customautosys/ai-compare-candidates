@@ -1,10 +1,12 @@
 {
 	"compilerOptions": {
 		"allowSyntheticDefaultImports": true,
+		"declarationMap": true,
 		"jsx": "preserve",
 		"composite": true,
 		"module": "esnext",
 		"moduleResolution": "node",
 		"skipLibCheck": true
-	}
+	},
+	"extends": "./example/.quasar/tsconfig.json"
 }
