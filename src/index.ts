@@ -406,7 +406,7 @@ export class AICompareCandidates extends Embeddings{
 				selectedCandidate=candidates.find(candidate=>identifier.toLowerCase().includes(String(candidate[candidateIdentifierField]).toLowerCase()));
 				if(selectedCandidate)return selectedCandidate;
 				return null;
-			})));
+			}))).slice(candidatesForFinalSelection);
 		}
 		if(this.DEBUG)console.log('Selected candidates',selectedCandidates);
 
