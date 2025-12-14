@@ -2,6 +2,7 @@ import { AutoTokenizer, env, pipeline } from "@huggingface/transformers";
 import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
 import { Embeddings } from "@langchain/core/embeddings";
 import lodash from "lodash";
+import jsan from "jsan";
 
 //#region src/index.ts
 var AICompareCandidates = class extends Embeddings {
@@ -40,7 +41,7 @@ var AICompareCandidates = class extends Embeddings {
 		env.allowRemoteModels = true;
 		env.allowLocalModels = true;
 	}
-	async loadGenerator({ progressCallback, modelName } = { modelName: "" }) {
+	async loadGenerator({ progressCallback, modelName = "" } = {}) {
 		if (typeof modelName === "string" && modelName) this.generatorModelName = modelName;
 		if (!this.generatorModelName) throw new Error("Invalid generator model name");
 		if (progressCallback) this.generatorProgressCallback = progressCallback;
@@ -59,7 +60,7 @@ var AICompareCandidates = class extends Embeddings {
 		if (!this.generator) await this.generatorPromise;
 		if (!this.generator) throw new Error("Unable to load generator");
 	}
-	async loadSummariser({ progressCallback, modelName } = { modelName: "" }) {
+	async loadSummariser({ progressCallback, modelName = "" } = {}) {
 		if (typeof modelName === "string" && modelName) this.summariserModelName = modelName;
 		if (!this.summariserModelName) throw new Error("Invalid summariser model name");
 		if (progressCallback) this.summariserProgressCallback = progressCallback;
@@ -78,7 +79,7 @@ var AICompareCandidates = class extends Embeddings {
 		if (!this.summariser) await this.summariserPromise;
 		if (!this.summariser) throw new Error("Unable to load summariser");
 	}
-	async loadEmbedder({ progressCallback, modelName } = { modelName: "" }) {
+	async loadEmbedder({ progressCallback, modelName = "" } = {}) {
 		if (typeof modelName === "string" && modelName) this.embedderModelName = modelName;
 		if (!this.embedderModelName) throw new Error("Invalid embedder model name");
 		if (progressCallback) this.embedderProgressCallback = progressCallback;
@@ -97,7 +98,7 @@ var AICompareCandidates = class extends Embeddings {
 		if (!this.embedder) await this.embedderPromise;
 		if (!this.embedder) throw new Error("Unable to load embedder");
 	}
-	async loadTokeniser({ progressCallback, modelName } = { modelName: "" }) {
+	async loadTokeniser({ progressCallback, modelName = "" } = {}) {
 		if (typeof modelName === "string" && modelName) this.tokeniserModelName = modelName;
 		if (!this.tokeniserModelName) throw new Error("Invalid tokeniser model name");
 		if (progressCallback) this.tokeniserProgressCallback = progressCallback;
@@ -126,11 +127,42 @@ var AICompareCandidates = class extends Embeddings {
 	generatePromptTemplate(prompt) {
 		return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n" + prompt + "\n\n### Response:";
 	}
-	async compareCandidates({ candidates, problemDescription, generateSearchAreasInstruction, convertCandidateToDocument, candidatesForInitialSelection, candidatesForFinalSelection, generateRankingInstruction, extractIdentifiersFromRationale, candidateIdentifierField, getSummarisableSubstringIndices }) {
+	defaultGenerateSearchAreasInstruction(problemDescription) {
+		return "List the relevant subject areas for the following issues. Limit your response to 100 words.\nIssues: \"" + problemDescription + "\"";
+	}
+	defaultConvertCandidateToDocument({ candidate, index } = {}) {
+		let document = "Start of Candidate #" + index;
+		for (let i in candidate) document += "\n" + lodash.startCase(i) + ":" + (typeof candidate[i] === "object" ? jsan.stringify(candidate[i]) : String(candidate[i]));
+		document += "End of Candidate #" + index;
+		return document;
+	}
+	defaultGenerateRankingInstruction({ problemDescription, summaries, candidatesForFinalSelection, candidateIdentifierField } = {}) {
+		return "Strictly follow these rules:\n1. Rank ONLY the top " + candidatesForFinalSelection + " with one 15-word sentence explaining why\n2. Rank the candidates based on \"" + problemDescription.replace(/(\r|\n)/g, " ") + "\"\n3. If unclear, say \"Insufficient information to determine\"\n\nOptions:\n" + summaries.join("\n\n") + "\n\nFormat exactly:\n#1. \"[Full " + lodash.startCase(candidateIdentifierField) + "]\": [15-word explanation]\n#2. ...";
+	}
+	defaultExtractIdentifiersFromRationale(rationale) {
+		let regex = /^\s*#\s*\d+\s*\.?\s*"([^"]+)"/gm;
+		let matches = [];
+		for (let match; Array.isArray(match = regex.exec(rationale));) if (match[1]) matches.push(match[1]);
+		return matches;
+	}
+	async compareCandidates({ candidates, problemDescription = "", generateSearchAreasInstruction = this.defaultGenerateSearchAreasInstruction, convertCandidateToDocument = this.defaultConvertCandidateToDocument, candidatesForInitialSelection = 2, candidatesForFinalSelection = 1, generateRankingInstruction = this.defaultGenerateRankingInstruction, extractIdentifiersFromRationale = this.defaultExtractIdentifiersFromRationale, candidateIdentifierField = null, getSummarisableSubstringIndices } = {}) {
+		if (!Array.isArray(candidates) || candidates.length <= 0) throw new Error("No candidates provided");
+		candidatesForInitialSelection = lodash.toSafeInteger(candidatesForInitialSelection);
+		if (candidatesForInitialSelection <= 0) throw new Error("Candidates for initial selection must be a positive integer bigger than 0");
+		candidatesForFinalSelection = lodash.toSafeInteger(candidatesForFinalSelection);
+		if (candidatesForFinalSelection <= 0) throw new Error("Candidates for initial selection must be a positive integer bigger than 0");
+		if (candidatesForInitialSelection < candidatesForFinalSelection) throw new Error("Candidates for initial selection must be equal or more than candidates for final selection");
+		if (!candidateIdentifierField) {
+			candidateIdentifierField = Object.keys(candidates[0])[0];
+			if (!candidateIdentifierField) throw new Error("No candidate identifier field");
+		}
 		let rationale = "";
 		let selectedCandidates = [];
 		await this.checkEmbedderLoaded();
-		let candidateDocuments = candidates.map((candidate) => convertCandidateToDocument(candidate));
+		let candidateDocuments = candidates.map((candidate, index) => convertCandidateToDocument({
+			candidate,
+			index
+		}));
 		let vectorStore = await MemoryVectorStore.fromTexts(lodash.cloneDeep(candidateDocuments), candidateDocuments.map((document, index) => index), this);
 		let searchAreasPromptTemplate = this.generatePromptTemplate(generateSearchAreasInstruction(problemDescription));
 		if (this.DEBUG) console.log("Formatted search areas prompt: " + searchAreasPromptTemplate);
@@ -176,7 +208,12 @@ var AICompareCandidates = class extends Embeddings {
 			let summarisedString = contentBefore + ((Array.isArray(summarisedSubstringArray?.[0]) ? summarisedSubstringArray?.[0]?.[0] : summarisedSubstringArray?.[0])?.summary_text ?? "").split(/s+/).slice(targetSummarisedSubstringTokenCount).join(" ") + contentAfter;
 			if (this.DEBUG) console.log("Summarised candidate: " + summarisedString);
 		}))).filter((result) => result.status === "fulfilled" && result.value).map((result) => result.value);
-		let rankingPromptTemplate = this.generatePromptTemplate(generateRankingInstruction(problemDescription, summaries));
+		let rankingPromptTemplate = this.generatePromptTemplate(generateRankingInstruction({
+			problemDescription,
+			summaries,
+			candidatesForFinalSelection,
+			candidateIdentifierField: String(candidateIdentifierField)
+		}));
 		if (this.tokeniser.encode(rankingPromptTemplate).length > this.tokeniser.model_max_length) throw new Error("Ranking instruction prompt is too long for the tokeniser model");
 		let rankingArray = await this.generator(rankingPromptTemplate, {
 			max_new_tokens: this.rankingMaxNewTokens,
@@ -210,6 +247,7 @@ var AICompareCandidates = class extends Embeddings {
 		};
 	}
 };
+(function(_AICompareCandidates) {})(AICompareCandidates || (AICompareCandidates = {}));
 var src_default = AICompareCandidates;
 
 //#endregion

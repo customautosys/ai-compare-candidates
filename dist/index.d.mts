@@ -36,38 +36,38 @@ declare class AICompareCandidates extends Embeddings {
   loadGenerator({
     progressCallback,
     modelName
-  }?: {
-    progressCallback?: ProgressCallback;
-    modelName: string;
-  }): Promise<TextGenerationPipeline>;
+  }?: AICompareCandidates.LoadArguments): Promise<TextGenerationPipeline>;
   checkGeneratorLoaded(): Promise<void>;
   loadSummariser({
     progressCallback,
     modelName
-  }?: {
-    progressCallback?: ProgressCallback;
-    modelName: string;
-  }): Promise<SummarizationPipeline>;
+  }?: AICompareCandidates.LoadArguments): Promise<SummarizationPipeline>;
   checkSummariserLoaded(): Promise<void>;
   loadEmbedder({
     progressCallback,
     modelName
-  }?: {
-    progressCallback?: ProgressCallback;
-    modelName: string;
-  }): Promise<FeatureExtractionPipeline>;
+  }?: AICompareCandidates.LoadArguments): Promise<FeatureExtractionPipeline>;
   checkEmbedderLoaded(): Promise<void>;
   loadTokeniser({
     progressCallback,
     modelName
-  }?: {
-    progressCallback?: ProgressCallback;
-    modelName: string;
-  }): Promise<PreTrainedTokenizer>;
+  }?: AICompareCandidates.LoadArguments): Promise<PreTrainedTokenizer>;
   checkTokeniserLoaded(): Promise<void>;
   embedQuery(text: string): Promise<number[]>;
   embedDocuments(texts: string[]): Promise<number[][]>;
   generatePromptTemplate(prompt: string): string;
+  defaultGenerateSearchAreasInstruction(problemDescription: string): string;
+  defaultConvertCandidateToDocument<Candidate>({
+    candidate,
+    index
+  }?: AICompareCandidates.ConvertCandidateToDocumentArguments<Candidate>): string;
+  defaultGenerateRankingInstruction({
+    problemDescription,
+    summaries,
+    candidatesForFinalSelection,
+    candidateIdentifierField
+  }?: AICompareCandidates.GenerateRankingInstructionArguments): string;
+  defaultExtractIdentifiersFromRationale(rationale: string): string[];
   compareCandidates<Candidate>({
     candidates,
     problemDescription,
@@ -79,24 +79,42 @@ declare class AICompareCandidates extends Embeddings {
     extractIdentifiersFromRationale,
     candidateIdentifierField,
     getSummarisableSubstringIndices
-  }: {
-    candidates: Candidate[];
-    problemDescription: string;
-    generateSearchAreasInstruction: (problemDescription: string) => string;
-    convertCandidateToDocument: (candidate: Candidate) => string;
-    candidatesForInitialSelection: number;
-    candidatesForFinalSelection: number;
-    generateRankingInstruction: (problemDescription: string, summaries: string[]) => string;
-    extractIdentifiersFromRationale: (rationale: string) => string[];
-    candidateIdentifierField: keyof Candidate;
-    getSummarisableSubstringIndices?: (candidateDocument: string) => {
-      start: number;
-      end: number;
-    };
-  }): Promise<{
+  }?: AICompareCandidates.CompareArguments<Candidate>): Promise<{
     selectedCandidates: Candidate[];
     rationale: string;
   }>;
+}
+declare namespace AICompareCandidates {
+  interface LoadArguments {
+    progressCallback?: ProgressCallback;
+    modelName: string;
+  }
+  interface SummarisableSubstringIndices {
+    start: number;
+    end: number;
+  }
+  interface CompareArguments<Candidate> {
+    candidates: Candidate[];
+    problemDescription: string;
+    generateSearchAreasInstruction: (problemDescription: string) => string;
+    convertCandidateToDocument: (convertCandidateToDocumentArguments: ConvertCandidateToDocumentArguments<Candidate>) => string;
+    candidatesForInitialSelection: number;
+    candidatesForFinalSelection: number;
+    generateRankingInstruction: (generateRankingInstructionArguments: GenerateRankingInstructionArguments) => string;
+    extractIdentifiersFromRationale: (rationale: string) => string[];
+    candidateIdentifierField: keyof Candidate;
+    getSummarisableSubstringIndices?: (candidateDocument: string) => SummarisableSubstringIndices;
+  }
+  interface ConvertCandidateToDocumentArguments<Candidate> {
+    candidate: Candidate;
+    index: number;
+  }
+  interface GenerateRankingInstructionArguments {
+    problemDescription: string;
+    summaries: string[];
+    candidatesForFinalSelection: number;
+    candidateIdentifierField: string;
+  }
 }
 //#endregion
 export { AICompareCandidates, AICompareCandidates as default };

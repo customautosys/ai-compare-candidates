@@ -17,6 +17,7 @@ import {GenerationConfig} from '@huggingface/transformers/types/generation/confi
 import {MemoryVectorStore} from '@langchain/classic/vectorstores/memory';
 import {Embeddings} from '@langchain/core/embeddings';
 import lodash from 'lodash';
+import jsan from 'jsan';
 
 export class AICompareCandidates extends Embeddings{
 	readonly env:TransformersEnvironment=env;
@@ -63,13 +64,8 @@ export class AICompareCandidates extends Embeddings{
 	
 	async loadGenerator({
 		progressCallback,
-		modelName		
-	}:{
-		progressCallback?:ProgressCallback,
-		modelName:string
-	}={
-		modelName:''
-	}){
+		modelName=''
+	}:AICompareCandidates.LoadArguments=<AICompareCandidates.LoadArguments>{}){
 		if(typeof modelName==='string'&&modelName)this.generatorModelName=modelName;
 		if(!this.generatorModelName)throw new Error('Invalid generator model name');
 		if(progressCallback)this.generatorProgressCallback=progressCallback;
@@ -94,13 +90,8 @@ export class AICompareCandidates extends Embeddings{
 
 	async loadSummariser({
 		progressCallback,
-		modelName		
-	}:{
-		progressCallback?:ProgressCallback,
-		modelName:string
-	}={
-		modelName:''
-	}){
+		modelName=''
+	}:AICompareCandidates.LoadArguments=<AICompareCandidates.LoadArguments>{}){
 		if(typeof modelName==='string'&&modelName)this.summariserModelName=modelName;
 		if(!this.summariserModelName)throw new Error('Invalid summariser model name');
 		if(progressCallback)this.summariserProgressCallback=progressCallback;
@@ -125,13 +116,8 @@ export class AICompareCandidates extends Embeddings{
 
 	async loadEmbedder({
 		progressCallback,
-		modelName		
-	}:{
-		progressCallback?:ProgressCallback,
-		modelName:string
-	}={
-		modelName:''
-	}){
+		modelName=''
+	}:AICompareCandidates.LoadArguments=<AICompareCandidates.LoadArguments>{}){
 		if(typeof modelName==='string'&&modelName)this.embedderModelName=modelName;
 		if(!this.embedderModelName)throw new Error('Invalid embedder model name');
 		if(progressCallback)this.embedderProgressCallback=progressCallback;
@@ -156,13 +142,8 @@ export class AICompareCandidates extends Embeddings{
 
 	async loadTokeniser({
 		progressCallback,
-		modelName
-	}:{
-		progressCallback?:ProgressCallback,
-		modelName:string
-	}={
-		modelName:''
-	}){
+		modelName=''
+	}:AICompareCandidates.LoadArguments=<AICompareCandidates.LoadArguments>{}){
 		if(typeof modelName==='string'&&modelName)this.tokeniserModelName=modelName;
 		if(!this.tokeniserModelName)throw new Error('Invalid tokeniser model name');
 		if(progressCallback)this.tokeniserProgressCallback=progressCallback;
@@ -203,37 +184,77 @@ export class AICompareCandidates extends Embeddings{
 			'\n\n### Response:';
 	}
 
+	defaultGenerateSearchAreasInstruction(problemDescription:string){
+		return 'List the relevant subject areas for the following issues. Limit your response to 100 words.\nIssues: "'+problemDescription+'"';
+	}
+
+	defaultConvertCandidateToDocument<Candidate>({
+		candidate,
+		index
+	}:AICompareCandidates.ConvertCandidateToDocumentArguments<Candidate>=<AICompareCandidates.ConvertCandidateToDocumentArguments<Candidate>>{}){
+		let document='Start of Candidate #'+index;
+		for(let i in candidate)document+='\n'+lodash.startCase(i)+':'+(typeof candidate[i]==='object'?jsan.stringify(candidate[i]):String(candidate[i]));
+		document+='End of Candidate #'+index;
+		return document;
+	}
+
+	defaultGenerateRankingInstruction({
+		problemDescription,
+		summaries,
+		candidatesForFinalSelection,
+		candidateIdentifierField
+	}:AICompareCandidates.GenerateRankingInstructionArguments=<AICompareCandidates.GenerateRankingInstructionArguments>{}){
+		return 'Strictly follow these rules:\n'+
+			'1. Rank ONLY the top '+candidatesForFinalSelection+' with one 15-word sentence explaining why\n'+
+			'2. Rank the candidates based on "'+problemDescription.replace(/(\r|\n)/g,' ')+'"\n'+
+			'3. If unclear, say "Insufficient information to determine"\n\n'+
+			'Options:\n'+summaries.join('\n\n')+'\n\n'+
+			'Format exactly:\n'+
+			'#1. "[Full '+lodash.startCase(candidateIdentifierField)+']": [15-word explanation]\n'+
+			'#2. ...'
+	}
+
+	defaultExtractIdentifiersFromRationale(rationale:string){
+		let regex=/^\s*#\s*\d+\s*\.?\s*"([^"]+)"/gm;
+		let matches:string[]=[];
+		for(let match:RegExpExecArray;Array.isArray(match=regex.exec(rationale));)if(match[1])matches.push(match[1]);
+		return matches;
+	}
+
 	async compareCandidates<Candidate>({
 		candidates,
-		problemDescription,
-		generateSearchAreasInstruction,
-		convertCandidateToDocument,
-		candidatesForInitialSelection,
-		candidatesForFinalSelection,
-		generateRankingInstruction,
-		extractIdentifiersFromRationale,
-		candidateIdentifierField,
+		problemDescription='',
+		generateSearchAreasInstruction=this.defaultGenerateSearchAreasInstruction,
+		convertCandidateToDocument=this.defaultConvertCandidateToDocument,
+		candidatesForInitialSelection=2,
+		candidatesForFinalSelection=1,
+		generateRankingInstruction=this.defaultGenerateRankingInstruction,
+		extractIdentifiersFromRationale=this.defaultExtractIdentifiersFromRationale,
+		candidateIdentifierField=null,
 		getSummarisableSubstringIndices
-	}:{
-		candidates:Candidate[],
-		problemDescription:string,
-		generateSearchAreasInstruction:(problemDescription:string)=>string,
-		convertCandidateToDocument:(candidate:Candidate)=>string,
-		candidatesForInitialSelection:number,
-		candidatesForFinalSelection:number,
-		generateRankingInstruction:(problemDescription:string,summaries:string[])=>string,
-		extractIdentifiersFromRationale:(rationale:string)=>string[],
-		candidateIdentifierField:keyof Candidate,
-		getSummarisableSubstringIndices?:(candidateDocument:string)=>{start:number,end:number}
-	}):Promise<{
+	}:AICompareCandidates.CompareArguments<Candidate>=<AICompareCandidates.CompareArguments<Candidate>>{}):Promise<{
 		selectedCandidates:Candidate[],
 		rationale:string
 	}>{
+		if(!Array.isArray(candidates)||candidates.length<=0)throw new Error('No candidates provided');
+		candidatesForInitialSelection=lodash.toSafeInteger(candidatesForInitialSelection);
+		if(candidatesForInitialSelection<=0)throw new Error('Candidates for initial selection must be a positive integer bigger than 0');
+		candidatesForFinalSelection=lodash.toSafeInteger(candidatesForFinalSelection);
+		if(candidatesForFinalSelection<=0)throw new Error('Candidates for initial selection must be a positive integer bigger than 0');
+		if(candidatesForInitialSelection<candidatesForFinalSelection)throw new Error('Candidates for initial selection must be equal or more than candidates for final selection');
+		if(!candidateIdentifierField){
+			candidateIdentifierField=Object.keys(candidates[0])[0] as keyof Candidate;
+			if(!candidateIdentifierField)throw new Error('No candidate identifier field');
+		}
+
 		let rationale='';
 		let selectedCandidates:Candidate[]=[];
 
 		await this.checkEmbedderLoaded();
-		let candidateDocuments=candidates.map(candidate=>convertCandidateToDocument(candidate));
+		let candidateDocuments=candidates.map((candidate,index)=>convertCandidateToDocument({
+			candidate,
+			index
+		}));
 		let vectorStore=await MemoryVectorStore.fromTexts(
 			lodash.cloneDeep(candidateDocuments),
 			candidateDocuments.map((document,index)=>index),
@@ -273,7 +294,7 @@ export class AICompareCandidates extends Embeddings{
 		let summaries=(await Promise.allSettled(queryResult.map(async result=>{
 			if(!result.pageContent||typeof result.pageContent!=='string')return '';
 			if(result.pageContent.trim().split(/\s+/).length<=this.targetSummarisedStringTokenCount)return result.pageContent;
-			let summarisableSubstringIndices={
+			let summarisableSubstringIndices:AICompareCandidates.SummarisableSubstringIndices={
 				start:0,
 				end:result.pageContent.length
 			};
@@ -293,7 +314,12 @@ export class AICompareCandidates extends Embeddings{
 			if(this.DEBUG)console.log('Summarised candidate: '+summarisedString);
 		}))).filter(result=>result.status==='fulfilled'&&result.value).map((result:PromiseFulfilledResult<string>)=>result.value);
 
-		let rankingPromptTemplate=this.generatePromptTemplate(generateRankingInstruction(problemDescription,summaries));
+		let rankingPromptTemplate=this.generatePromptTemplate(generateRankingInstruction({
+			problemDescription,
+			summaries,
+			candidatesForFinalSelection,
+			candidateIdentifierField:String(candidateIdentifierField)
+		}));
 		let rankingPromptTokens=this.tokeniser.encode(rankingPromptTemplate);
 		if(rankingPromptTokens.length>this.tokeniser.model_max_length)throw new Error('Ranking instruction prompt is too long for the tokeniser model');
 		let rankingArray=await this.generator(rankingPromptTemplate,{
@@ -330,6 +356,43 @@ export class AICompareCandidates extends Embeddings{
 			selectedCandidates
 		};
 	}
+};
+
+export namespace AICompareCandidates{
+	export interface LoadArguments{
+		progressCallback?:ProgressCallback;
+		modelName:string;
+	};
+
+	export interface SummarisableSubstringIndices{
+		start:number;
+		end:number;
+	};
+
+	export interface CompareArguments<Candidate>{
+		candidates:Candidate[];
+		problemDescription:string;
+		generateSearchAreasInstruction:(problemDescription:string)=>string;
+		convertCandidateToDocument:(convertCandidateToDocumentArguments:ConvertCandidateToDocumentArguments<Candidate>)=>string;
+		candidatesForInitialSelection:number;
+		candidatesForFinalSelection:number;
+		generateRankingInstruction:(generateRankingInstructionArguments:GenerateRankingInstructionArguments)=>string;
+		extractIdentifiersFromRationale:(rationale:string)=>string[];
+		candidateIdentifierField:keyof Candidate;
+		getSummarisableSubstringIndices?:(candidateDocument:string)=>SummarisableSubstringIndices;
+	};
+
+	export interface ConvertCandidateToDocumentArguments<Candidate>{
+		candidate:Candidate;
+		index:number;
+	};
+
+	export interface GenerateRankingInstructionArguments{
+		problemDescription:string;
+		summaries:string[];
+		candidatesForFinalSelection:number;
+		candidateIdentifierField:string;
+	};
 };
 
 export default AICompareCandidates;

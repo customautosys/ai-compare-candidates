@@ -661,6 +661,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/jsan@npm:^3":
+  version: 3.1.5
+  resolution: "@types/jsan@npm:3.1.5"
+  checksum: 10c0/82cce2b438bca465915bc5e3b31cecbd58665b69f60873198d660a36ebb0665df514609244386f153ccf147d8963c041bcd25f481b45c0262451dbf2ce7f0c5c
+  languageName: node
+  linkType: hard
+
 "@types/lodash@npm:^4":
   version: 4.17.21
   resolution: "@types/lodash@npm:4.17.21"
@@ -691,7 +698,9 @@ __metadata:
     "@huggingface/transformers": "npm:^3.8.1"
     "@langchain/classic": "npm:^1.0.6"
     "@langchain/core": "npm:^1.1.5"
+    "@types/jsan": "npm:^3"
     "@types/lodash": "npm:^4"
+    jsan: "npm:^3.1.14"
     lodash: "npm:^4.17.21"
     tsdown: "npm:^0.17.3"
     typescript: "npm:^5.9.3"
@@ -1050,6 +1059,13 @@ __metadata:
   bin:
     js-yaml: bin/js-yaml.js
   checksum: 10c0/561c7d7088c40a9bb53cc75becbfb1df6ae49b34b5e6e5a81744b14ae8667ec564ad2527709d1a6e7d5e5fa6d483aa0f373a50ad98d42fde368ec4a190d4fae7
+  languageName: node
+  linkType: hard
+
+"jsan@npm:^3.1.14":
+  version: 3.1.14
+  resolution: "jsan@npm:3.1.14"
+  checksum: 10c0/86b6738e90769d8e717849f7bd9ba4742a4ffb1edfa28354521e0c8f106a3addd15eb79d723b47dc9867c70ed06245e4ee14cb2a10c99b91ea612071688137dc
   languageName: node
   linkType: hard
 
