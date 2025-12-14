@@ -2,15 +2,12 @@ import{
 	env,
 	pipeline,
 	AutoTokenizer,
-	AutoModelForSequenceClassification,
 	TextGenerationPipeline,
 	ProgressInfo,
 	ProgressCallback,
 	SummarizationPipeline,
 	FeatureExtractionPipeline,
-	PreTrainedTokenizer,
-	TextGenerationOutput,
-	TextGenerationSingle
+	PreTrainedTokenizer
 }from '@huggingface/transformers';
 import {TransformersEnvironment} from '@huggingface/transformers/types/env';
 import {GenerationConfig} from '@huggingface/transformers/types/generation/configuration_utils';
