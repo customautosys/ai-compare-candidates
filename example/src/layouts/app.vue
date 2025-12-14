@@ -32,6 +32,16 @@
 					</q-item>
 					<q-item>
 						<q-item-section>
+							<q-input label="Candidates for Initial Selection" type="number" v-model.number="candidatesForInitialSelection"/>
+						</q-item-section>
+					</q-item>
+					<q-item>
+						<q-item-section>
+							<q-input label="Candidates for Final Selection" type="number" v-model.number="candidatesForFinalSelection"/>
+						</q-item-section>
+					</q-item>
+					<q-item>
+						<q-item-section>
 							<q-btn no-caps icon="fas fa-plus" label="Add Candidate" @click="addCandidate"/>
 						</q-item-section>
 						<q-item-section>
@@ -70,12 +80,17 @@
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue';
+import{
+	nextTick,
+	ref,
+	watch
+}from 'vue';
 import{
 	Dialog,
 	Loading
 }from 'quasar';
 import jsan from 'jsan';
+import lodash from 'lodash';
 import useStore from '../stores/store';
 import type AICompareCandidates from 'ai-compare-candidates';
 
@@ -87,10 +102,15 @@ const store=useStore();
 
 const candidates=ref<Candidate[]>([{name:'Testing 1'},{name:'Testing 2'}]);
 const problemDescription=ref('Pick the best name');
+const candidatesForInitialSelection=ref(2);
+const candidatesForFinalSelection=ref(1);
 const outcome=ref<AICompareCandidates.CompareCandidatesReturn<Candidate>>({
 	selectedCandidates:[],
 	rationale:''
 });
+
+watch(candidatesForInitialSelection,value=>nextTick(()=>candidatesForInitialSelection.value=lodash.clamp(value,Math.max(candidatesForFinalSelection.value,1),candidates.value.length)));
+watch(candidatesForFinalSelection,value=>nextTick(()=>candidatesForFinalSelection.value=lodash.clamp(value,1,Math.min(candidatesForInitialSelection.value,candidates.value.length))));
 
 function removeCandidate(index:number){
 	if(candidates.value.length<=2){
@@ -111,10 +131,12 @@ function errorMessage(error:any){
 async function artificialIntelligence(){
 	try{
 		Loading.show();
-		outcome.value=await store.aiCompareCandidates.compareCandidates({
+		outcome.value=(await store.aiCompareCandidates.compareCandidates({
 			candidates:candidates.value,
-			problemDescription:problemDescription.value
-		});
+			problemDescription:problemDescription.value,
+			candidatesForInitialSelection:candidatesForInitialSelection.value,
+			candidatesForFinalSelection:candidatesForFinalSelection.value
+		})) as AICompareCandidates.CompareCandidatesReturn<Candidate>;
 	}catch(error){
 		console.log(error);
 		Dialog.create({message:errorMessage(error)});
