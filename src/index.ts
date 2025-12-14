@@ -9,12 +9,12 @@ import{
 	FeatureExtractionPipeline,
 	PreTrainedTokenizer
 }from '@huggingface/transformers';
-import {TransformersEnvironment} from '@huggingface/transformers/types/env';
-import {GenerationConfig} from '@huggingface/transformers/types/generation/configuration_utils';
 import {MemoryVectorStore} from '@langchain/classic/vectorstores/memory';
 import {Embeddings} from '@langchain/core/embeddings';
 import lodash from 'lodash';
 import jsan from 'jsan';
+import type {TransformersEnvironment} from '@huggingface/transformers/types/env';
+import type {GenerationConfig} from '@huggingface/transformers/types/generation/configuration_utils';
 
 export class AICompareCandidates extends Embeddings{
 	readonly env:TransformersEnvironment=env;
