@@ -20,7 +20,7 @@ export class AICompareCandidates extends Embeddings{
 	DEBUG=true;
 
 	generator:TextGenerationPipeline|null=null;
-	generatorModelName='onnx-community/Phi-3.5-mini-instruct-onnx-web';
+	generatorModelName='Xenova/LaMini-Neo-125M';
 	generatorPromise:Promise<TextGenerationPipeline>|null=null;
 	generatorProgressInfo:ProgressInfo=<ProgressInfo>{};
 	generatorProgressCallback:ProgressCallback|null=null;
@@ -253,13 +253,13 @@ export class AICompareCandidates extends Embeddings{
 	async compareCandidates<Candidate>({
 		candidates,
 		problemDescription='',
-		generateSearchAreasInstruction=this.defaultGenerateSearchAreasInstruction,
-		convertCandidateToDocument=this.defaultConvertCandidateToDocument,
+		generateSearchAreasInstruction=this.defaultGenerateSearchAreasInstruction.bind(this),
+		convertCandidateToDocument=this.defaultConvertCandidateToDocument.bind(this),
 		candidatesForInitialSelection=2,
 		candidatesForFinalSelection=1,
-		generateRankingInstruction=this.defaultGenerateRankingInstruction,
-		extractIdentifiersFromRationale=this.defaultExtractIdentifiersFromRationale,
-		extractIdentifierFromCandidateDocument=this.defaultExtractIdentifierFromCandidateDocument,
+		generateRankingInstruction=this.defaultGenerateRankingInstruction.bind(this),
+		extractIdentifiersFromRationale=this.defaultExtractIdentifiersFromRationale.bind(this),
+		extractIdentifierFromCandidateDocument=this.defaultExtractIdentifierFromCandidateDocument.bind(this),
 		candidateIdentifierField=undefined,
 		getSummarisableSubstringIndices
 	}:AICompareCandidates.CompareArguments<Candidate>=<AICompareCandidates.CompareArguments<Candidate>>{}):Promise<AICompareCandidates.CompareCandidatesReturn<Candidate>|void>{
@@ -377,19 +377,22 @@ export class AICompareCandidates extends Embeddings{
 		if(rationaleResponseIndex>=0)rationaleResponseIndex+='### Response:'.length;
 		else rationaleResponseIndex=0;
 		rationale=rationale.substring(rationaleResponseIndex);
-		if(!rationale)throw new Error('No rationale generated');
+		//if(!rationale)throw new Error('No rationale generated');
 
-		let identifiers=extractIdentifiersFromRationale(rationale);
-		if(identifiers.length>candidatesForFinalSelection)identifiers=identifiers.slice(0,candidatesForFinalSelection);
-		selectedCandidates=lodash.compact(identifiers.map(identifier=>{
-			let selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase()===identifier.toLowerCase());
-			if(selectedCandidate)return selectedCandidate;
-			selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase().includes(identifier.toLowerCase()));
-			if(selectedCandidate)return selectedCandidate;
-			selectedCandidate=candidates.find(candidate=>identifier.toLowerCase().includes(String(candidate[candidateIdentifierField]).toLowerCase()));
-			if(selectedCandidate)return selectedCandidate;
-			return null;
-		}));
+		if(rationale){
+			let identifiers=extractIdentifiersFromRationale(rationale);
+			if(identifiers.length>candidatesForFinalSelection)identifiers=identifiers.slice(0,candidatesForFinalSelection);
+			selectedCandidates=lodash.compact(identifiers.map(identifier=>{
+				let selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase()===identifier.toLowerCase());
+				if(selectedCandidate)return selectedCandidate;
+				selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase().includes(identifier.toLowerCase()));
+				if(selectedCandidate)return selectedCandidate;
+				selectedCandidate=candidates.find(candidate=>identifier.toLowerCase().includes(String(candidate[candidateIdentifierField]).toLowerCase()));
+				if(selectedCandidate)return selectedCandidate;
+				return null;
+			}));
+		}
+
 		if(!Array.isArray(selectedCandidates)||selectedCandidates.length<=0){
 			selectedCandidates=lodash.uniq(lodash.compact(queryResult.map(result=>{
 				let identifier=extractIdentifierFromCandidateDocument({
