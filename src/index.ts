@@ -20,7 +20,7 @@ export class AICompareCandidates extends Embeddings{
 	DEBUG=true;
 
 	generator:TextGenerationPipeline|null=null;
-	generatorModelName='Xenova/LaMini-GPT-124M';
+	generatorModelName='Xenova/LaMini-GPT-774M';
 	generatorPromise:Promise<TextGenerationPipeline>|null=null;
 	generatorProgressInfo:ProgressInfo=<ProgressInfo>{};
 	generatorProgressCallback:ProgressCallback|null=null;
@@ -215,8 +215,8 @@ export class AICompareCandidates extends Embeddings{
 			'3. If unclear, say "Insufficient information to determine"\n\n'+
 			'Candidates:\n\n'+summaries.join('\n\n')+'\n\n'+
 			'Format exactly:\n'+
-			'#1. "[Full '+lodash.startCase(candidateIdentifierField)+']": [15-word explanation]\n'+
-			'#2. ...'
+			'#1. "Full '+lodash.startCase(candidateIdentifierField)+'": 15-word explanation\n'+
+			'#2. ...';
 	}
 
 	regexIndexOf(text:string,regex:RegExp,startIndex:number){
@@ -228,18 +228,26 @@ export class AICompareCandidates extends Embeddings{
 		candidateDocument,
 		candidateIdentifierField
 	}:AICompareCandidates.ExtractIdentifierFromCandidateDocumentArguments=<AICompareCandidates.ExtractIdentifierFromCandidateDocumentArguments>{}){
+		if(this.DEBUG)console.log(candidateDocument,candidateIdentifierField);
 		let startCase=lodash.startCase(candidateIdentifierField);
 		let startIndex=candidateDocument.indexOf(startCase);
 		if(startIndex<0)startIndex=candidateDocument.toLowerCase().indexOf(startCase.toLowerCase());
+		if(this.DEBUG)console.log(startIndex);
 		if(startIndex>=0)startIndex+=startCase.length;
-		if(startIndex<0)startIndex=candidateDocument.toLowerCase().indexOf(candidateIdentifierField.toLowerCase());
-		if(startIndex>=0)startIndex+=candidateIdentifierField.length;
+		if(startIndex<0){
+			startIndex=candidateDocument.toLowerCase().indexOf(candidateIdentifierField.toLowerCase());
+			if(startIndex>=0)startIndex+=candidateIdentifierField.length;
+		}
+		if(this.DEBUG)console.log(startIndex);
 		else return '';
 		startIndex=candidateDocument.indexOf(':',startIndex);
+		if(this.DEBUG)console.log(startIndex);
 		if(startIndex<0)startIndex=this.regexIndexOf(candidateDocument,/\s+/,startIndex);
+		if(this.DEBUG)console.log(startIndex);
 		if(startIndex<0)return '';
 		let endIndex=candidateDocument.indexOf('\n',startIndex);
 		if(endIndex<0)endIndex=candidateDocument.length;
+		if(this.DEBUG)console.log(endIndex);
 		return candidateDocument.substring(startIndex,endIndex).trim();
 	}
 
@@ -318,9 +326,10 @@ export class AICompareCandidates extends Embeddings{
 
 		let vectorSearchQuery=searchAreasReply.generated_text.toString().substring(searchAreasResponseIndex).trim();
 		//generally the first sentence has the greatest relevance to the actual prompt
-		if(vectorSearchQuery.includes('.'))vectorSearchQuery=vectorSearchQuery.split('.')[0].trim();
+		//if(vectorSearchQuery.includes('.'))vectorSearchQuery=vectorSearchQuery.split('.')[0].trim();
 		if(this.DEBUG)console.log('Vector search query: '+vectorSearchQuery);
 		let queryResult=await vectorStore.similaritySearch(vectorSearchQuery,candidatesForInitialSelection);
+		if(this.DEBUG)console.log('Vector search results: ',queryResult);
 
 		let summaries:string[]=[];
 		//only bother doing summarisation if there are candidates which exceed the token count
@@ -398,7 +407,8 @@ export class AICompareCandidates extends Embeddings{
 				let identifier=extractIdentifierFromCandidateDocument({
 					candidateDocument:result.pageContent,
 					candidateIdentifierField:String(candidateIdentifierField)
-				})
+				});
+				if(this.DEBUG)console.log('Extracted identifier from candidate document: '+identifier);
 				let selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase()===identifier.toLowerCase());
 				if(selectedCandidate)return selectedCandidate;
 				selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase().includes(identifier.toLowerCase()));
