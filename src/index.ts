@@ -8,7 +8,8 @@ import{
 	SummarizationPipeline,
 	FeatureExtractionPipeline,
 	PreTrainedTokenizer,
-	TextGenerationConfig
+	TextGenerationConfig,
+	TextGenerationSingle
 }from '@sroussey/transformers';
 import {MemoryVectorStore} from '@langchain/classic/vectorstores/memory';
 import {Embeddings} from '@langchain/core/embeddings';
@@ -350,10 +351,18 @@ export class AICompareCandidates extends Embeddings{
 		return matches;
 	}
 
+	defaultParseSearchAreasResponse(searchAreasResponse:string){
+		let searchAreasResponseIndex=String(searchAreasResponse).indexOf('### Response:');
+		if(searchAreasResponseIndex>=0)searchAreasResponseIndex+='### Response:'.length;
+		else searchAreasResponseIndex=0;
+		return String(searchAreasResponse).substring(searchAreasResponseIndex).trim();
+	}
+
 	async compareCandidates<Candidate>({
 		candidates,
 		problemDescription='',
 		generateSearchAreasInstruction=this.defaultGenerateSearchAreasInstruction.bind(this),
+		parseSearchAreasResponse=this.defaultParseSearchAreasResponse.bind(this),
 		convertCandidateToDocument=this.defaultConvertCandidateToDocument.bind(this),
 		candidatesForInitialSelection=2,
 		candidatesForFinalSelection=1,
@@ -362,7 +371,8 @@ export class AICompareCandidates extends Embeddings{
 		extractIdentifierFromCandidateDocument=this.defaultExtractIdentifierFromCandidateDocument.bind(this),
 		candidateIdentifierField=undefined,
 		getSummarisableSubstringIndices,
-		generatePromptTemplate=this.defaultGeneratePromptTemplate.bind(this)
+		generatePromptTemplate=this.defaultGeneratePromptTemplate.bind(this),
+		skipRationale=false
 	}:AICompareCandidates.CompareArguments<Candidate>=<AICompareCandidates.CompareArguments<Candidate>>{}):Promise<AICompareCandidates.CompareCandidatesReturn<Candidate>|void>{
 		if(!Array.isArray(candidates)||candidates.length<=0)throw new Error('No candidates provided');
 		candidatesForInitialSelection=lodash.toSafeInteger(candidatesForInitialSelection);
@@ -413,11 +423,7 @@ export class AICompareCandidates extends Embeddings{
 		let searchAreasReply=Array.isArray(searchAreasReplyArray?.[0])?searchAreasReplyArray?.[0]?.[0]:searchAreasReplyArray?.[0];
 		if(!searchAreasReply.generated_text)throw new Error('No generated text for search areas');
 		if(this.DEBUG)console.log('Generated search areas response: '+searchAreasReply.generated_text);
-		let searchAreasResponseIndex=searchAreasReply.generated_text.toString().indexOf('### Response:');
-		if(searchAreasResponseIndex>=0)searchAreasResponseIndex+='### Response:'.length;
-		else searchAreasResponseIndex=0;
-
-		let vectorSearchQuery=searchAreasReply.generated_text.toString().substring(searchAreasResponseIndex).trim();
+		let vectorSearchQuery=parseSearchAreasResponse(Array.isArray(searchAreasReply.generated_text)?searchAreasReply.generated_text.join('\n\n'):String(searchAreasReply.generated_text));
 		//generally the first sentence has the greatest relevance to the actual prompt
 		//if(vectorSearchQuery.includes('.'))vectorSearchQuery=vectorSearchQuery.split('.')[0].trim();
 		if(this.DEBUG)console.log('Vector search query: '+vectorSearchQuery);
@@ -456,30 +462,37 @@ export class AICompareCandidates extends Embeddings{
 			summaries=queryResult.map(result=>result.pageContent);
 		}
 
-		let rankingPromptTemplate=generatePromptTemplate(generateRankingInstruction({
-			problemDescription,
-			summaries,
-			candidatesForFinalSelection,
-			candidateIdentifierField:String(candidateIdentifierField)
-		}));
-		if(this.DEBUG)console.log('Formatted ranking prompt: '+rankingPromptTemplate);
-		let rankingPromptTokens=this.tokeniser.encode(rankingPromptTemplate);
-		if(rankingPromptTokens.length>this.tokeniser.model_max_length)throw new Error('Ranking instruction prompt is too long for the tokeniser model');
-		let rankingArray=await this.generator(rankingPromptTemplate,{
-			max_new_tokens:this.rankingMaxNewTokens,
-			temperature:this.rankingTemperature,
-			repetition_penalty:this.rankingRepetitionPenalty,
-			pad_token_id,
-			eos_token_id
-		});
-		let ranking=Array.isArray(rankingArray?.[0])?rankingArray?.[0]?.[0]:rankingArray[0];
-		rationale=ranking.generated_text.toString().trim().replace(/(\*\*)|(<\/?s>)|(\[.*?\])\s*/g, '');
-		if(this.DEBUG)console.log('Generated rationale: '+rationale);
-		let rationaleResponseIndex=rationale.indexOf('### Response:');
-		if(rationaleResponseIndex>=0)rationaleResponseIndex+='### Response:'.length;
-		else rationaleResponseIndex=0;
-		rationale=rationale.substring(rationaleResponseIndex);
-		//if(!rationale)throw new Error('No rationale generated');
+		if(!skipRationale){
+			let rankingPromptTemplate=generatePromptTemplate(generateRankingInstruction({
+				problemDescription,
+				summaries,
+				candidatesForFinalSelection,
+				candidateIdentifierField:String(candidateIdentifierField)
+			}));
+			if(this.DEBUG)console.log('Formatted ranking prompt: '+rankingPromptTemplate);
+			let rankingPromptTokens=this.tokeniser.encode(rankingPromptTemplate);
+			if(rankingPromptTokens.length>this.tokeniser.model_max_length)throw new Error('Ranking instruction prompt is too long for the tokeniser model');
+			try{
+				let rankingArray=await this.generator(rankingPromptTemplate,{
+					max_new_tokens:this.rankingMaxNewTokens,
+					temperature:this.rankingTemperature,
+					repetition_penalty:this.rankingRepetitionPenalty,
+					pad_token_id,
+					eos_token_id
+				});
+				let ranking=Array.isArray(rankingArray?.[0])?rankingArray?.[0]?.[0]:rankingArray[0];
+				rationale=ranking.generated_text.toString().trim().replace(/(\*\*)|(<\/?s>)|(\[.*?\])\s*/g, '');
+				if(this.DEBUG)console.log('Generated rationale: '+rationale);
+				let rationaleResponseIndex=rationale.indexOf('### Response:');
+				if(rationaleResponseIndex>=0)rationaleResponseIndex+='### Response:'.length;
+				else rationaleResponseIndex=0;
+				rationale=rationale.substring(rationaleResponseIndex);
+				//if(!rationale)throw new Error('No rationale generated');
+			}catch(error){
+				console.log(error);
+				rationale='';
+			}
+		}
 
 		if(rationale){
 			let identifiers=extractIdentifiersFromRationale(rationale);
@@ -509,7 +522,7 @@ export class AICompareCandidates extends Embeddings{
 				selectedCandidate=candidates.find(candidate=>identifier.toLowerCase().includes(String(candidate[candidateIdentifierField]).toLowerCase()));
 				if(selectedCandidate)return selectedCandidate;
 				return null;
-			}))).slice(candidatesForFinalSelection);
+			}))).slice(0,candidatesForFinalSelection);
 		}
 		if(this.DEBUG)console.log('Selected candidates',selectedCandidates);
 
@@ -535,6 +548,7 @@ export namespace AICompareCandidates{
 		candidates:Candidate[];
 		problemDescription:string;
 		generateSearchAreasInstruction?:(problemDescription:string)=>string;
+		parseSearchAreasResponse?:(searchAreasResponse:string)=>string;
 		convertCandidateToDocument?:(convertCandidateToDocumentArguments:ConvertCandidateToDocumentArguments<Candidate>)=>string;
 		candidatesForInitialSelection?:number;
 		candidatesForFinalSelection?:number;
@@ -544,6 +558,7 @@ export namespace AICompareCandidates{
 		candidateIdentifierField?:keyof Candidate;
 		getSummarisableSubstringIndices?:(candidateDocument:string)=>SummarisableSubstringIndices;
 		generatePromptTemplate?:(prompt:string)=>string;
+		skipRationale?:boolean;
 	};
 
 	export interface ConvertCandidateToDocumentArguments<Candidate>{

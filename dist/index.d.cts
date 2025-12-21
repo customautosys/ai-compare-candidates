@@ -94,10 +94,12 @@ declare class AICompareCandidates extends Embeddings {
     candidateIdentifierField
   }?: AICompareCandidates.ExtractIdentifierFromCandidateDocumentArguments): string;
   defaultExtractIdentifiersFromRationale(rationale: string): string[];
+  defaultParseSearchAreasResponse(searchAreasResponse: string): string;
   compareCandidates<Candidate>({
     candidates,
     problemDescription,
     generateSearchAreasInstruction,
+    parseSearchAreasResponse,
     convertCandidateToDocument,
     candidatesForInitialSelection,
     candidatesForFinalSelection,
@@ -106,7 +108,8 @@ declare class AICompareCandidates extends Embeddings {
     extractIdentifierFromCandidateDocument,
     candidateIdentifierField,
     getSummarisableSubstringIndices,
-    generatePromptTemplate
+    generatePromptTemplate,
+    skipRationale
   }?: AICompareCandidates.CompareArguments<Candidate>): Promise<AICompareCandidates.CompareCandidatesReturn<Candidate> | void>;
 }
 declare namespace AICompareCandidates {
@@ -122,6 +125,7 @@ declare namespace AICompareCandidates {
     candidates: Candidate[];
     problemDescription: string;
     generateSearchAreasInstruction?: (problemDescription: string) => string;
+    parseSearchAreasResponse?: (searchAreasResponse: string) => string;
     convertCandidateToDocument?: (convertCandidateToDocumentArguments: ConvertCandidateToDocumentArguments<Candidate>) => string;
     candidatesForInitialSelection?: number;
     candidatesForFinalSelection?: number;
@@ -131,6 +135,7 @@ declare namespace AICompareCandidates {
     candidateIdentifierField?: keyof Candidate;
     getSummarisableSubstringIndices?: (candidateDocument: string) => SummarisableSubstringIndices;
     generatePromptTemplate?: (prompt: string) => string;
+    skipRationale?: boolean;
   }
   interface ConvertCandidateToDocumentArguments<Candidate> {
     candidate: Candidate;
