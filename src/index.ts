@@ -274,7 +274,7 @@ export class AICompareCandidates extends Embeddings{
 		return Promise.all(texts.map(text=>this.embedQuery(text)));
 	}
 
-	generatePromptTemplate(prompt:string){
+	defaultGeneratePromptTemplate(prompt:string){
 		return 'Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n'+
 			'### Instruction:\n'+
 			prompt+
@@ -361,7 +361,8 @@ export class AICompareCandidates extends Embeddings{
 		extractIdentifiersFromRationale=this.defaultExtractIdentifiersFromRationale.bind(this),
 		extractIdentifierFromCandidateDocument=this.defaultExtractIdentifierFromCandidateDocument.bind(this),
 		candidateIdentifierField=undefined,
-		getSummarisableSubstringIndices
+		getSummarisableSubstringIndices,
+		generatePromptTemplate=this.defaultGeneratePromptTemplate.bind(this)
 	}:AICompareCandidates.CompareArguments<Candidate>=<AICompareCandidates.CompareArguments<Candidate>>{}):Promise<AICompareCandidates.CompareCandidatesReturn<Candidate>|void>{
 		if(!Array.isArray(candidates)||candidates.length<=0)throw new Error('No candidates provided');
 		candidatesForInitialSelection=lodash.toSafeInteger(candidatesForInitialSelection);
@@ -391,7 +392,7 @@ export class AICompareCandidates extends Embeddings{
 			this
 		);
 
-		let searchAreasPromptTemplate=this.generatePromptTemplate(generateSearchAreasInstruction(problemDescription));
+		let searchAreasPromptTemplate=generatePromptTemplate(generateSearchAreasInstruction(problemDescription));
 		if(this.DEBUG)console.log('Formatted search areas prompt: '+searchAreasPromptTemplate);
 		await this.checkTokeniserLoaded();
 		if(!this.tokeniser)return;
@@ -455,7 +456,7 @@ export class AICompareCandidates extends Embeddings{
 			summaries=queryResult.map(result=>result.pageContent);
 		}
 
-		let rankingPromptTemplate=this.generatePromptTemplate(generateRankingInstruction({
+		let rankingPromptTemplate=generatePromptTemplate(generateRankingInstruction({
 			problemDescription,
 			summaries,
 			candidatesForFinalSelection,
@@ -542,6 +543,7 @@ export namespace AICompareCandidates{
 		extractIdentifierFromCandidateDocument?:(extractIdentifierFromCandidateDocumentArguments:ExtractIdentifierFromCandidateDocumentArguments)=>string;
 		candidateIdentifierField?:keyof Candidate;
 		getSummarisableSubstringIndices?:(candidateDocument:string)=>SummarisableSubstringIndices;
+		generatePromptTemplate?:(prompt:string)=>string;
 	};
 
 	export interface ConvertCandidateToDocumentArguments<Candidate>{

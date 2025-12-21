@@ -76,7 +76,7 @@ declare class AICompareCandidates extends Embeddings {
   abortLoadTokeniser(): Promise<void>;
   embedQuery(text: string): Promise<number[]>;
   embedDocuments(texts: string[]): Promise<number[][]>;
-  generatePromptTemplate(prompt: string): string;
+  defaultGeneratePromptTemplate(prompt: string): string;
   defaultGenerateSearchAreasInstruction(problemDescription: string): string;
   defaultConvertCandidateToDocument<Candidate>({
     candidate,
@@ -105,7 +105,8 @@ declare class AICompareCandidates extends Embeddings {
     extractIdentifiersFromRationale,
     extractIdentifierFromCandidateDocument,
     candidateIdentifierField,
-    getSummarisableSubstringIndices
+    getSummarisableSubstringIndices,
+    generatePromptTemplate
   }?: AICompareCandidates.CompareArguments<Candidate>): Promise<AICompareCandidates.CompareCandidatesReturn<Candidate> | void>;
 }
 declare namespace AICompareCandidates {
@@ -129,6 +130,7 @@ declare namespace AICompareCandidates {
     extractIdentifierFromCandidateDocument?: (extractIdentifierFromCandidateDocumentArguments: ExtractIdentifierFromCandidateDocumentArguments) => string;
     candidateIdentifierField?: keyof Candidate;
     getSummarisableSubstringIndices?: (candidateDocument: string) => SummarisableSubstringIndices;
+    generatePromptTemplate?: (prompt: string) => string;
   }
   interface ConvertCandidateToDocumentArguments<Candidate> {
     candidate: Candidate;
