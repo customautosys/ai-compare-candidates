@@ -9,7 +9,7 @@ import{
 	FeatureExtractionPipeline,
 	PreTrainedTokenizer,
 	TextGenerationConfig
-}from '@huggingface/transformers';
+}from '@sroussey/transformers';
 import {MemoryVectorStore} from '@langchain/classic/vectorstores/memory';
 import {Embeddings} from '@langchain/core/embeddings';
 import lodash from 'lodash';
@@ -24,24 +24,28 @@ export class AICompareCandidates extends Embeddings{
 	generatorPromise:Promise<TextGenerationPipeline>|null=null;
 	generatorProgressInfo:ProgressInfo=<ProgressInfo>{};
 	generatorProgressCallback:ProgressCallback|null=null;
+	generatorAbortController=new AbortController();
 
 	summariser:SummarizationPipeline|null=null;
 	summariserModelName='Xenova/distilbart-cnn-12-6';
 	summariserPromise:Promise<SummarizationPipeline>|null=null;
 	summariserProgressInfo:ProgressInfo=<ProgressInfo>{};
 	summariserProgressCallback:ProgressCallback|null=null;
+	summariserAbortController=new AbortController();
 
 	embedder:FeatureExtractionPipeline|null=null;
 	embedderModelName='Xenova/all-MiniLM-L12-v2';
 	embedderPromise:Promise<FeatureExtractionPipeline>|null=null;
 	embedderProgressInfo:ProgressInfo=<ProgressInfo>{};
 	embedderProgressCallback:ProgressCallback|null=null;
+	embedderAbortController=new AbortController();
 
 	tokeniser:PreTrainedTokenizer|null=null;
 	tokeniserModelName=this.generatorModelName;
 	tokeniserPromise:Promise<PreTrainedTokenizer>|null=null;
 	tokeniserProgressInfo:ProgressInfo=<ProgressInfo>{};
 	tokeniserProgressCallback:ProgressCallback|null=null;
+	tokeniserAbortController=new AbortController();
 
 	generateSearchAreasMaxNewTokens=64;
 	generateSearchAreasTemperature=0.35;
@@ -78,16 +82,28 @@ export class AICompareCandidates extends Embeddings{
 				if(this.DEBUG)console.log(jsan.stringify(progressInfo));
 				Object.assign(this.generatorProgressInfo,progressInfo);
 				return this.generatorProgressCallback?.(progressInfo);
-			}
+			},
+			abort_signal:this.generatorAbortController.signal
 		});
 		this.generator=await this.generatorPromise;
 		return this.generator;
 	}
 
-	async checkGeneratorLoaded(){
-		if(!this.generatorPromise)this.loadGenerator();
+	async checkGeneratorLoaded({
+		progressCallback,
+		modelName=''
+	}:AICompareCandidates.LoadArguments=<AICompareCandidates.LoadArguments>{}){
+		if(!this.generatorPromise)this.loadGenerator({
+			progressCallback,
+			modelName
+		});
 		if(!this.generator)await this.generatorPromise;
 		if(!this.generator)throw new Error('Unable to load generator');
+	}
+
+	async abortLoadGenerator(reason?:any){
+		this.generatorAbortController.abort(reason);
+		this.generatorAbortController=new AbortController();
 	}
 
 	async loadSummariser({
@@ -105,16 +121,28 @@ export class AICompareCandidates extends Embeddings{
 				if(this.DEBUG)console.log(jsan.stringify(progressInfo));
 				Object.assign(this.summariserProgressInfo,progressInfo);
 				return this.summariserProgressCallback?.(progressInfo);
-			}
+			},
+			abort_signal:this.summariserAbortController.signal
 		});
 		this.summariser=await this.summariserPromise;
 		return this.summariser;
 	}
 
-	async checkSummariserLoaded(){
-		if(!this.summariserPromise)this.loadSummariser();
+	async checkSummariserLoaded({
+		progressCallback,
+		modelName=''
+	}:AICompareCandidates.LoadArguments=<AICompareCandidates.LoadArguments>{}){
+		if(!this.summariserPromise)this.loadSummariser({
+			progressCallback,
+			modelName
+		});
 		if(!this.summariser)await this.summariserPromise;
 		if(!this.summariser)throw new Error('Unable to load summariser');
+	}
+
+	async abortLoadSummariser(){
+		this.summariserAbortController.abort();
+		this.summariserAbortController=new AbortController();
 	}
 
 	async loadEmbedder({
@@ -132,16 +160,28 @@ export class AICompareCandidates extends Embeddings{
 				if(this.DEBUG)console.log(jsan.stringify(progressInfo));
 				Object.assign(this.embedderProgressInfo,progressInfo);
 				return this.embedderProgressCallback?.(progressInfo);
-			}
+			},
+			abort_signal:this.embedderAbortController.signal
 		});
 		this.embedder=await this.embedderPromise;
 		return this.embedder;
 	}
 
-	async checkEmbedderLoaded(){
-		if(!this.embedderPromise)this.loadEmbedder();
+	async checkEmbedderLoaded({
+		progressCallback,
+		modelName=''
+	}:AICompareCandidates.LoadArguments=<AICompareCandidates.LoadArguments>{}){
+		if(!this.embedderPromise)this.loadEmbedder({
+			progressCallback,
+			modelName
+		});
 		if(!this.embedder)await this.embedderPromise;
 		if(!this.embedder)throw new Error('Unable to load embedder');
+	}
+
+	async abortLoadEmbedder(){
+		this.embedderAbortController.abort();
+		this.embedderAbortController=new AbortController();
 	}
 
 	async loadTokeniser({
@@ -158,16 +198,28 @@ export class AICompareCandidates extends Embeddings{
 				if(this.DEBUG)console.log(jsan.stringify(progressInfo));
 				Object.assign(this.tokeniserProgressInfo,progressInfo);
 				return this.tokeniserProgressCallback?.(progressInfo);
-			}
-		})
+			},
+			abort_signal:this.tokeniserAbortController.signal
+		});
 		this.tokeniser=await this.tokeniserPromise;
 		return this.tokeniser;
 	}
 
-	async checkTokeniserLoaded(){
-		if(!this.tokeniserPromise)this.loadTokeniser();
+	async checkTokeniserLoaded({
+		progressCallback,
+		modelName=''
+	}:AICompareCandidates.LoadArguments=<AICompareCandidates.LoadArguments>{}){
+		if(!this.tokeniserPromise)this.loadTokeniser({
+			progressCallback,
+			modelName
+		});
 		if(!this.tokeniser)await this.tokeniserPromise;
 		if(!this.tokeniser)throw new Error('Unable to load tokeniser');
+	}
+
+	async abortLoadTokeniser(){
+		this.tokeniserAbortController.abort();
+		this.tokeniserAbortController=new AbortController();
 	}
 
 	async embedQuery(text:string):Promise<number[]>{

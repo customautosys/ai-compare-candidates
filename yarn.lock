@@ -284,18 +284,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@huggingface/transformers@npm:^3.8.1":
-  version: 3.8.1
-  resolution: "@huggingface/transformers@npm:3.8.1"
-  dependencies:
-    "@huggingface/jinja": "npm:^0.5.3"
-    onnxruntime-node: "npm:1.21.0"
-    onnxruntime-web: "npm:1.22.0-dev.20250409-89f8206ba4"
-    sharp: "npm:^0.34.1"
-  checksum: 10c0/5fa8112ecf4fecee21eb82b1970b6290e0ab7b32166bc67ee12b539ff9d23a0d1fe6eab308a478e31167118c963b9eeef5fdbcc27ba19a20a350ef51e36fb0f6
-  languageName: node
-  linkType: hard
-
 "@img/colour@npm:^1.0.0":
   version: 1.0.0
   resolution: "@img/colour@npm:1.0.0"
@@ -1337,6 +1325,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@sroussey/transformers@npm:^3.8.2":
+  version: 3.8.2
+  resolution: "@sroussey/transformers@npm:3.8.2"
+  dependencies:
+    "@huggingface/jinja": "npm:^0.5.3"
+    onnxruntime-node: "npm:1.23.2"
+    onnxruntime-web: "npm:1.23.2"
+    sharp: "npm:^0.34.5"
+  checksum: 10c0/970be46aa08b8d7faff093e51177d9189bbc744e522f7c3faa70dadf1ce30c8932983c31db4810be3fd425219d27662ab5af0b7b08e6dfa723d63f66b3a98e61
+  languageName: node
+  linkType: hard
+
 "@tybys/wasm-util@npm:^0.10.1":
   version: 0.10.1
   resolution: "@tybys/wasm-util@npm:0.10.1"
@@ -1516,11 +1516,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:>=13.7.0":
-  version: 25.0.1
-  resolution: "@types/node@npm:25.0.1"
+  version: 25.0.3
+  resolution: "@types/node@npm:25.0.3"
   dependencies:
     undici-types: "npm:~7.16.0"
-  checksum: 10c0/1d5ca9f240d0cf8e43d5281c0e6ee96fb22d37dc2e5ef52c6ca71de47957a6128e124990cedf5b14c03d0250737bd78ad370d93bcf1729a75ca4e54384fdd51a
+  checksum: 10c0/b7568f0d765d9469621615e2bb257c7fd1953d95e9acbdb58dffb6627a2c4150d405a4600aa1ad8a40182a94fe5f903cafd3c0a2f5132814debd0e3bfd61f835
   languageName: node
   linkType: hard
 
@@ -1781,6 +1781,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"adm-zip@npm:^0.5.16":
+  version: 0.5.16
+  resolution: "adm-zip@npm:0.5.16"
+  checksum: 10c0/6f10119d4570c7ba76dcf428abb8d3f69e63f92e51f700a542b43d4c0130373dd2ddfc8f85059f12d4a843703a90c3970cfd17876844b4f3f48bf042bfa6b49f
+  languageName: node
+  linkType: hard
+
 "agent-base@npm:^7.1.0, agent-base@npm:^7.1.2":
   version: 7.1.4
   resolution: "agent-base@npm:7.1.4"
@@ -1813,9 +1820,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "ai-compare-candidates@workspace:."
   dependencies:
-    "@huggingface/transformers": "npm:^3.8.1"
     "@langchain/classic": "npm:^1.0.6"
     "@langchain/core": "npm:^1.1.5"
+    "@sroussey/transformers": "npm:^3.8.2"
     "@types/jsan": "npm:^3"
     "@types/lodash": "npm:^4"
     jsan: "npm:^3.1.14"
@@ -4317,43 +4324,36 @@ __metadata:
   languageName: node
   linkType: hard
 
-"onnxruntime-common@npm:1.21.0":
-  version: 1.21.0
-  resolution: "onnxruntime-common@npm:1.21.0"
-  checksum: 10c0/424a83ad21b770fbf69e85f9736911ef238ea5b3ace73fa9a49fc584c98eed0a2f2fe977d2277fe725f8f6ec65d1fce3ad635c2d0a908163c6a7a03cc7478775
+"onnxruntime-common@npm:1.23.2":
+  version: 1.23.2
+  resolution: "onnxruntime-common@npm:1.23.2"
+  checksum: 10c0/414a6595e3942663bfb005eb8c3bae6600b907a63e86e304c3dcac78c006692ade6f270f325cf3773b77995add7551c271c5b3321529b7487c42848a3eae567c
   languageName: node
   linkType: hard
 
-"onnxruntime-common@npm:1.22.0-dev.20250409-89f8206ba4":
-  version: 1.22.0-dev.20250409-89f8206ba4
-  resolution: "onnxruntime-common@npm:1.22.0-dev.20250409-89f8206ba4"
-  checksum: 10c0/11d68e3580f24c2413a4134d99f162a3897bcd76f1fd7a56aa927add3608e98c3bed75245b42d203abc61cf8155eb7c72082fbee995ef28867cbbcd0698d0769
-  languageName: node
-  linkType: hard
-
-"onnxruntime-node@npm:1.21.0":
-  version: 1.21.0
-  resolution: "onnxruntime-node@npm:1.21.0"
+"onnxruntime-node@npm:1.23.2":
+  version: 1.23.2
+  resolution: "onnxruntime-node@npm:1.23.2"
   dependencies:
+    adm-zip: "npm:^0.5.16"
     global-agent: "npm:^3.0.0"
-    onnxruntime-common: "npm:1.21.0"
-    tar: "npm:^7.0.1"
-  checksum: 10c0/7a2a7c3104da9c64fe9a2a9d04dce255aaabd337741c5369c0627575e03cd165b393f0e11c827ab352726d3f8493adc3ff842a60f135770038fb8d584500baa8
+    onnxruntime-common: "npm:1.23.2"
+  checksum: 10c0/fd54658b07d4f963593a80bdb788190a30a5a188ff1b86b7414dc17eda917a45e6ed3e14bfeac00a8e9089bb6e72536f3a02cb253342d3638d6fb181a1daa74e
   conditions: (os=win32 | os=darwin | os=linux)
   languageName: node
   linkType: hard
 
-"onnxruntime-web@npm:1.22.0-dev.20250409-89f8206ba4":
-  version: 1.22.0-dev.20250409-89f8206ba4
-  resolution: "onnxruntime-web@npm:1.22.0-dev.20250409-89f8206ba4"
+"onnxruntime-web@npm:1.23.2":
+  version: 1.23.2
+  resolution: "onnxruntime-web@npm:1.23.2"
   dependencies:
     flatbuffers: "npm:^25.1.24"
     guid-typescript: "npm:^1.0.9"
     long: "npm:^5.2.3"
-    onnxruntime-common: "npm:1.22.0-dev.20250409-89f8206ba4"
+    onnxruntime-common: "npm:1.23.2"
     platform: "npm:^1.3.6"
     protobufjs: "npm:^7.2.4"
-  checksum: 10c0/da5ee356a00be38c9571610777e212f23670a0b59f20e2d41e551c337420a64641eab9d21ff25c8c501cc7e93d71ce329732edc39f859f5818a383e0a7e35123
+  checksum: 10c0/c95ce99dbcc481345a2c3e177a709dcc8770ccb8657a8c7a5776929cc830355db7c1858988dbd68eea04d2d935a56dd4a6e7050e55b96def431367d3d56bfd2b
   languageName: node
   linkType: hard
 
@@ -5415,7 +5415,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sharp@npm:^0.34.1":
+"sharp@npm:^0.34.5":
   version: 0.34.5
   resolution: "sharp@npm:0.34.5"
   dependencies:
@@ -5810,7 +5810,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tar@npm:^7.0.1, tar@npm:^7.5.2":
+"tar@npm:^7.5.2":
   version: 7.5.2
   resolution: "tar@npm:7.5.2"
   dependencies:

@@ -1,6 +1,6 @@
 {
 	"name": "ai-compare-candidates",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"description": "Compare and rank multiple candidate objects using artificial intelligence retrieval augmented generation, providing the rationale",
 	"main": "dist/index.mjs",
 	"scripts": {
@@ -27,9 +27,9 @@
 	"homepage": "https://github.com/customautosys/ai-compare-candidates#readme",
 	"packageManager": "yarn@4.12.0",
 	"dependencies": {
-		"@huggingface/transformers": "^3.8.1",
 		"@langchain/classic": "^1.0.6",
 		"@langchain/core": "^1.1.5",
+		"@sroussey/transformers": "^3.8.2",
 		"jsan": "^3.1.14",
 		"lodash": "^4.17.21"
 	},

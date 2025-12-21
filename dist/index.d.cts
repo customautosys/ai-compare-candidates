@@ -1,31 +1,35 @@
-import * as _huggingface_transformers_types_env0 from "@huggingface/transformers/types/env";
-import { FeatureExtractionPipeline, PreTrainedTokenizer, ProgressCallback, ProgressInfo, SummarizationPipeline, TextGenerationPipeline } from "@huggingface/transformers";
+import * as _sroussey_transformers_types_env0 from "@sroussey/transformers/types/env";
+import { FeatureExtractionPipeline, PreTrainedTokenizer, ProgressCallback, ProgressInfo, SummarizationPipeline, TextGenerationPipeline } from "@sroussey/transformers";
 import { Embeddings } from "@langchain/core/embeddings";
 
 //#region src/index.d.ts
 declare class AICompareCandidates extends Embeddings {
-  readonly env: _huggingface_transformers_types_env0.TransformersEnvironment;
+  readonly env: _sroussey_transformers_types_env0.TransformersEnvironment;
   DEBUG: boolean;
   generator: TextGenerationPipeline | null;
   generatorModelName: string;
   generatorPromise: Promise<TextGenerationPipeline> | null;
   generatorProgressInfo: ProgressInfo;
   generatorProgressCallback: ProgressCallback | null;
+  generatorAbortController: AbortController;
   summariser: SummarizationPipeline | null;
   summariserModelName: string;
   summariserPromise: Promise<SummarizationPipeline> | null;
   summariserProgressInfo: ProgressInfo;
   summariserProgressCallback: ProgressCallback | null;
+  summariserAbortController: AbortController;
   embedder: FeatureExtractionPipeline | null;
   embedderModelName: string;
   embedderPromise: Promise<FeatureExtractionPipeline> | null;
   embedderProgressInfo: ProgressInfo;
   embedderProgressCallback: ProgressCallback | null;
+  embedderAbortController: AbortController;
   tokeniser: PreTrainedTokenizer | null;
   tokeniserModelName: string;
   tokeniserPromise: Promise<PreTrainedTokenizer> | null;
   tokeniserProgressInfo: ProgressInfo;
   tokeniserProgressCallback: ProgressCallback | null;
+  tokeniserAbortController: AbortController;
   generateSearchAreasMaxNewTokens: number;
   generateSearchAreasTemperature: number;
   generateSearchAreasRepetitionPenalty: number;
@@ -38,22 +42,38 @@ declare class AICompareCandidates extends Embeddings {
     progressCallback,
     modelName
   }?: AICompareCandidates.LoadArguments): Promise<TextGenerationPipeline>;
-  checkGeneratorLoaded(): Promise<void>;
+  checkGeneratorLoaded({
+    progressCallback,
+    modelName
+  }?: AICompareCandidates.LoadArguments): Promise<void>;
+  abortLoadGenerator(reason?: any): Promise<void>;
   loadSummariser({
     progressCallback,
     modelName
   }?: AICompareCandidates.LoadArguments): Promise<SummarizationPipeline>;
-  checkSummariserLoaded(): Promise<void>;
+  checkSummariserLoaded({
+    progressCallback,
+    modelName
+  }?: AICompareCandidates.LoadArguments): Promise<void>;
+  abortLoadSummariser(): Promise<void>;
   loadEmbedder({
     progressCallback,
     modelName
   }?: AICompareCandidates.LoadArguments): Promise<FeatureExtractionPipeline>;
-  checkEmbedderLoaded(): Promise<void>;
+  checkEmbedderLoaded({
+    progressCallback,
+    modelName
+  }?: AICompareCandidates.LoadArguments): Promise<void>;
+  abortLoadEmbedder(): Promise<void>;
   loadTokeniser({
     progressCallback,
     modelName
   }?: AICompareCandidates.LoadArguments): Promise<PreTrainedTokenizer>;
-  checkTokeniserLoaded(): Promise<void>;
+  checkTokeniserLoaded({
+    progressCallback,
+    modelName
+  }?: AICompareCandidates.LoadArguments): Promise<void>;
+  abortLoadTokeniser(): Promise<void>;
   embedQuery(text: string): Promise<number[]>;
   embedDocuments(texts: string[]): Promise<number[][]>;
   generatePromptTemplate(prompt: string): string;
