@@ -430,7 +430,7 @@ export class AICompareCandidates extends Embeddings{
 export namespace AICompareCandidates{
 	export interface LoadArguments{
 		progressCallback?:ProgressCallback;
-		modelName:string;
+		modelName?:string;
 	};
 
 	export interface SummarisableSubstringIndices{

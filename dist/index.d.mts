@@ -91,7 +91,7 @@ declare class AICompareCandidates extends Embeddings {
 declare namespace AICompareCandidates {
   interface LoadArguments {
     progressCallback?: ProgressCallback;
-    modelName: string;
+    modelName?: string;
   }
   interface SummarisableSubstringIndices {
     start: number;
