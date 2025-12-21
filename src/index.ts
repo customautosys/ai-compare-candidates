@@ -97,8 +97,18 @@ export class AICompareCandidates extends Embeddings{
 			progressCallback,
 			modelName
 		});
-		if(!this.generator)await this.generatorPromise;
-		if(!this.generator)throw new Error('Unable to load generator');
+		if(!this.generator){
+			try{
+				await this.generatorPromise;
+			}catch(error){
+				this.generatorPromise=null;
+				throw error;
+			}
+		}
+		if(!this.generator){
+			this.generatorPromise=null;
+			throw new Error('Unable to load generator');
+		}
 	}
 
 	async abortLoadGenerator(reason?:any){
@@ -136,8 +146,18 @@ export class AICompareCandidates extends Embeddings{
 			progressCallback,
 			modelName
 		});
-		if(!this.summariser)await this.summariserPromise;
-		if(!this.summariser)throw new Error('Unable to load summariser');
+		if(!this.summariser){
+			try{
+				await this.summariserPromise;
+			}catch(error){
+				this.summariserPromise=null;
+				throw error;
+			}
+		}
+		if(!this.summariser){
+			this.summariserPromise=null;
+			throw new Error('Unable to load summariser');
+		}
 	}
 
 	async abortLoadSummariser(){
@@ -175,8 +195,18 @@ export class AICompareCandidates extends Embeddings{
 			progressCallback,
 			modelName
 		});
-		if(!this.embedder)await this.embedderPromise;
-		if(!this.embedder)throw new Error('Unable to load embedder');
+		if(!this.embedder){
+			try{
+				await this.embedderPromise;
+			}catch(error){
+				this.embedderPromise=null;
+				throw error;
+			}
+		}
+		if(!this.embedder){
+			this.embedderPromise=null;
+			throw new Error('Unable to load embedder');
+		}
 	}
 
 	async abortLoadEmbedder(){
@@ -213,8 +243,18 @@ export class AICompareCandidates extends Embeddings{
 			progressCallback,
 			modelName
 		});
-		if(!this.tokeniser)await this.tokeniserPromise;
-		if(!this.tokeniser)throw new Error('Unable to load tokeniser');
+		if(!this.tokeniser){
+			try{
+				await this.tokeniserPromise;
+			}catch(error){
+				this.tokeniserPromise=null;
+				throw error;
+			}
+		}
+		if(!this.tokeniser){
+			this.tokeniserPromise=null;
+			throw new Error('Unable to load tokeniser');
+		}
 	}
 
 	async abortLoadTokeniser(){
