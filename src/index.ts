@@ -443,7 +443,7 @@ export class AICompareCandidates extends Embeddings{
 				let contentBefore=result.pageContent.substring(0,summarisableSubstringIndices.start);
 				let contentAfter=result.pageContent.substring(summarisableSubstringIndices.end);
 				let wordsWithoutSummarisable=contentBefore.split(/s+/).length+contentAfter.split(/s+/).length;
-				let targetSummarisedSubstringTokenCount=Math.max(1,420-wordsWithoutSummarisable);
+				let targetSummarisedSubstringTokenCount=Math.max(1,this.targetSummarisedStringTokenCount-wordsWithoutSummarisable);
 				let summarisedSubstringArray=await this.summariser?.(summarisableSubstring,<TextGenerationConfig>{
 					max_length:targetSummarisedSubstringTokenCount
 				});
