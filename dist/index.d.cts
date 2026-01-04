@@ -94,6 +94,11 @@ declare class AICompareCandidates extends Embeddings {
     candidateIdentifierField
   }?: AICompareCandidates.ExtractIdentifierFromCandidateDocumentArguments): string;
   defaultExtractIdentifiersFromRationale(rationale: string): string[];
+  defaultFindCandidateFromIdentifier<Candidate>({
+    identifier,
+    candidateIdentifierField,
+    candidates
+  }?: AICompareCandidates.FindCandidateFromIdentifierArguments<Candidate>): Candidate | null;
   defaultParseSearchAreasResponse(searchAreasResponse: string): string;
   compareCandidates<Candidate>({
     candidates,
@@ -107,6 +112,7 @@ declare class AICompareCandidates extends Embeddings {
     extractIdentifiersFromRationale,
     extractIdentifierFromCandidateDocument,
     candidateIdentifierField,
+    findCandidateFromIdentifier,
     getSummarisableSubstringIndices,
     generatePromptTemplate,
     skipRationale
@@ -133,6 +139,7 @@ declare namespace AICompareCandidates {
     extractIdentifiersFromRationale?: (rationale: string) => string[];
     extractIdentifierFromCandidateDocument?: (extractIdentifierFromCandidateDocumentArguments: ExtractIdentifierFromCandidateDocumentArguments) => string;
     candidateIdentifierField?: keyof Candidate;
+    findCandidateFromIdentifier?: (findCandidateFromIdentifierArguments: FindCandidateFromIdentifierArguments<Candidate>) => Candidate | null;
     getSummarisableSubstringIndices?: (candidateDocument: string) => SummarisableSubstringIndices;
     generatePromptTemplate?: (prompt: string) => string;
     skipRationale?: boolean;
@@ -144,6 +151,11 @@ declare namespace AICompareCandidates {
   interface ExtractIdentifierFromCandidateDocumentArguments {
     candidateDocument: string;
     candidateIdentifierField: string;
+  }
+  interface FindCandidateFromIdentifierArguments<Candidate> {
+    identifier: string;
+    candidateIdentifierField: keyof Candidate;
+    candidates: Candidate[];
   }
   interface GenerateRankingInstructionArguments {
     problemDescription: string;

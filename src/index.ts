@@ -351,6 +351,47 @@ export class AICompareCandidates extends Embeddings{
 		return matches;
 	}
 
+	defaultFindCandidateFromIdentifier<Candidate>({
+		identifier,
+		candidateIdentifierField,
+		candidates
+	}:AICompareCandidates.FindCandidateFromIdentifierArguments<Candidate>=<AICompareCandidates.FindCandidateFromIdentifierArguments<Candidate>>{}){
+		let selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase()===identifier.toLowerCase());
+		if(selectedCandidate)return selectedCandidate;
+		selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase().includes(identifier.toLowerCase()));
+		if(selectedCandidate)return selectedCandidate;
+		selectedCandidate=candidates.find(candidate=>identifier.toLowerCase().includes(String(candidate[candidateIdentifierField]).toLowerCase()));
+		if(selectedCandidate)return selectedCandidate;
+		//split by space and find highest number of matches (tie break if it is in same order)
+		let identifierWords=identifier.split(/\s+/g);
+		let selectedCandidates=candidates.map(candidate=>({
+			identifierWordIndices:identifierWords.map(identifierWord=>String(candidate[candidateIdentifierField]).indexOf(identifierWord)),
+			candidate
+		})).sort((a,b)=>{
+			let aCount=lodash.sumBy(a.identifierWordIndices,aElement=>aElement<0?0:1);
+			let bCount=lodash.sumBy(b.identifierWordIndices,bElement=>bElement<0?0:1);
+			if(aCount!==bCount)return bCount-aCount;
+			if(aCount===0&&bCount===0)return 0;
+			aCount=0;
+			bCount=0;
+			for(let i=0;i<a.identifierWordIndices.length-1;++i){
+				for(let j=i+1;j<a.identifierWordIndices.length;++j){
+					if(a.identifierWordIndices[i]<0||a.identifierWordIndices[j]<0)continue;
+					if(a.identifierWordIndices[i]<a.identifierWordIndices[j])++aCount;
+				}
+			}
+			for(let i=0;i<b.identifierWordIndices.length-1;++i){
+				for(let j=i+1;j<b.identifierWordIndices.length;++j){
+					if(b.identifierWordIndices[i]<0||b.identifierWordIndices[j]<0)continue;
+					if(b.identifierWordIndices[i]<b.identifierWordIndices[j])++bCount;
+				}
+			}
+			return bCount-aCount;
+		});
+		if(selectedCandidates[0].identifierWordIndices.some(index=>index>=0))return selectedCandidates[0].candidate;
+		return null;
+	}
+
 	defaultParseSearchAreasResponse(searchAreasResponse:string){
 		let searchAreasResponseIndex=String(searchAreasResponse).indexOf('### Response:');
 		if(searchAreasResponseIndex>=0)searchAreasResponseIndex+='### Response:'.length;
@@ -370,6 +411,7 @@ export class AICompareCandidates extends Embeddings{
 		extractIdentifiersFromRationale=this.defaultExtractIdentifiersFromRationale.bind(this),
 		extractIdentifierFromCandidateDocument=this.defaultExtractIdentifierFromCandidateDocument.bind(this),
 		candidateIdentifierField=undefined,
+		findCandidateFromIdentifier=this.defaultFindCandidateFromIdentifier.bind(this),
 		getSummarisableSubstringIndices,
 		generatePromptTemplate=this.defaultGeneratePromptTemplate.bind(this),
 		skipRationale=false
@@ -496,33 +538,31 @@ export class AICompareCandidates extends Embeddings{
 
 		if(rationale){
 			let identifiers=extractIdentifiersFromRationale(rationale);
+			if(this.DEBUG)console.log('Extracted identifiers from rationale: '+identifiers);
 			if(identifiers.length>candidatesForFinalSelection)identifiers=identifiers.slice(0,candidatesForFinalSelection);
-			selectedCandidates=lodash.compact(identifiers.map(identifier=>{
-				let selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase()===identifier.toLowerCase());
-				if(selectedCandidate)return selectedCandidate;
-				selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase().includes(identifier.toLowerCase()));
-				if(selectedCandidate)return selectedCandidate;
-				selectedCandidate=candidates.find(candidate=>identifier.toLowerCase().includes(String(candidate[candidateIdentifierField]).toLowerCase()));
-				if(selectedCandidate)return selectedCandidate;
-				return null;
-			}));
+			selectedCandidates=lodash.compact(identifiers.map(identifier=>findCandidateFromIdentifier({
+				identifier,
+				candidateIdentifierField,
+				candidates
+			})));
 		}
 
-		if(!Array.isArray(selectedCandidates)||selectedCandidates.length<=0){
-			selectedCandidates=lodash.uniq(lodash.compact(queryResult.map(result=>{
+		if(!Array.isArray(selectedCandidates)||selectedCandidates.length<candidatesForFinalSelection){
+			if(!Array.isArray(selectedCandidates))selectedCandidates=[];
+			let additionalSelectedCandidates=lodash.compact(queryResult.map(result=>{
 				let identifier=extractIdentifierFromCandidateDocument({
 					candidateDocument:result.pageContent,
 					candidateIdentifierField:String(candidateIdentifierField)
 				});
 				if(this.DEBUG)console.log('Extracted identifier from candidate document: '+identifier);
-				let selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase()===identifier.toLowerCase());
-				if(selectedCandidate)return selectedCandidate;
-				selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase().includes(identifier.toLowerCase()));
-				if(selectedCandidate)return selectedCandidate;
-				selectedCandidate=candidates.find(candidate=>identifier.toLowerCase().includes(String(candidate[candidateIdentifierField]).toLowerCase()));
-				if(selectedCandidate)return selectedCandidate;
-				return null;
-			}))).slice(0,candidatesForFinalSelection);
+				return findCandidateFromIdentifier({
+					identifier,
+					candidateIdentifierField,
+					candidates
+				});
+			}));
+			selectedCandidates.splice(selectedCandidates.length,0,...additionalSelectedCandidates);
+			selectedCandidates=lodash.uniq(selectedCandidates).slice(0,candidatesForFinalSelection-selectedCandidates.length);
 		}
 		if(this.DEBUG)console.log('Selected candidates',selectedCandidates);
 
@@ -556,6 +596,7 @@ export namespace AICompareCandidates{
 		extractIdentifiersFromRationale?:(rationale:string)=>string[];
 		extractIdentifierFromCandidateDocument?:(extractIdentifierFromCandidateDocumentArguments:ExtractIdentifierFromCandidateDocumentArguments)=>string;
 		candidateIdentifierField?:keyof Candidate;
+		findCandidateFromIdentifier?:(findCandidateFromIdentifierArguments:FindCandidateFromIdentifierArguments<Candidate>)=>Candidate|null;
 		getSummarisableSubstringIndices?:(candidateDocument:string)=>SummarisableSubstringIndices;
 		generatePromptTemplate?:(prompt:string)=>string;
 		skipRationale?:boolean;
@@ -569,6 +610,12 @@ export namespace AICompareCandidates{
 	export interface ExtractIdentifierFromCandidateDocumentArguments{
 		candidateDocument:string;
 		candidateIdentifierField:string;
+	};
+
+	export interface FindCandidateFromIdentifierArguments<Candidate>{
+		identifier:string;
+		candidateIdentifierField:keyof Candidate;
+		candidates:Candidate[];
 	};
 
 	export interface GenerateRankingInstructionArguments{
