@@ -499,8 +499,8 @@ export class AICompareCandidates extends Embeddings{
 					max_length:targetSummarisedSubstringTokenCount
 				});
 				let summarisedSubstring=Array.isArray(summarisedSubstringArray?.[0])?summarisedSubstringArray?.[0]?.[0]:summarisedSubstringArray?.[0];
-				if(this.DEBUG)console.log(summarisedSubstringArray,summarisedSubstring,summarisedSubstring?.summary_text??'',(summarisedSubstring?.summary_text??'').split(/\s+/).slice(targetSummarisedSubstringTokenCount).join(' '));
-				let summarisedString=contentBefore+(summarisedSubstring?.summary_text??'').split(/\s+/).slice(targetSummarisedSubstringTokenCount).join(' ')+contentAfter;
+				if(this.DEBUG)console.log(summarisedSubstringArray,summarisedSubstring,summarisedSubstring?.summary_text??'',(summarisedSubstring?.summary_text??'').split(/\s+/).slice(0,targetSummarisedSubstringTokenCount).join(' '));
+				let summarisedString=contentBefore+(summarisedSubstring?.summary_text??'').split(/\s+/).slice(0,targetSummarisedSubstringTokenCount).join(' ')+contentAfter;
 				if(this.DEBUG)console.log('Summarised candidate: '+summarisedString);
 				return summarisedString;
 			}))).filter(result=>result.status==='fulfilled'&&result.value).map(result=>(result as PromiseFulfilledResult<string>).value);
