@@ -44,6 +44,7 @@ AICompareCandidates.compareCandidates<Candidate>({
 	candidates,
 	problemDescription='',
 	generateSearchAreasInstruction=this.defaultGenerateSearchAreasInstruction.bind(this),
+	parseSearchAreasResponse=this.defaultParseSearchAreasResponse.bind(this),
 	convertCandidateToDocument=this.defaultConvertCandidateToDocument.bind(this),
 	candidatesForInitialSelection=2,
 	candidatesForFinalSelection=1,
@@ -51,7 +52,10 @@ AICompareCandidates.compareCandidates<Candidate>({
 	extractIdentifiersFromRationale=this.defaultExtractIdentifiersFromRationale.bind(this),
 	extractIdentifierFromCandidateDocument=this.defaultExtractIdentifierFromCandidateDocument.bind(this),
 	candidateIdentifierField=undefined,
-	getSummarisableSubstringIndices
+	findCandidateFromIdentifier=this.defaultFindCandidateFromIdentifier.bind(this),
+	getSummarisableSubstringIndices,
+	generatePromptTemplate=this.defaultGeneratePromptTemplate.bind(this),
+	skipRationale=false
 }:AICompareCandidates.CompareArguments<Candidate>=<AICompareCandidates.CompareArguments<Candidate>>{}):Promise<AICompareCandidates.CompareCandidatesReturn<Candidate>|void>
 ```
 candidates: Candidate objects as you define them
@@ -59,6 +63,8 @@ candidates: Candidate objects as you define them
 problemDescription: The prompt for description of the problem, i.e. how you would like the AI model to select the candidates.
 
 generateSearchAreasInstruction: A function for generating the instruction for determining the relevant subject areas to use to search the vector database.
+
+parseSearchAreasResponse: A function to parse the search areas response returned by the generator.
 
 convertCandidateToDocument: A function to convert a candidate object to a candidate document, i.e. a string, which can be embedded in the vector database.
 
@@ -74,4 +80,10 @@ extractIdentifierFromCandidateDocument: A function for extracting the correct ca
 
 candidateIdentifierField: The field in the candidate object which is used to identify it, e.g. name or ID number.
 
+findCandidateFromIdentifier: A function for finding a candidate object from a provided identifier field.
+
 getSummarisableSubstringIndices: A function for identifying the substring indices of a candidate document string which can be summarised by the summarisation model.
+
+generatePromptTemplate: A function for generating the template for the prompt to the generator.
+
+skipRationale: Whether to skip rationale generation.
