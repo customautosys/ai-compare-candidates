@@ -567,7 +567,7 @@ export class AICompareCandidates extends Embeddings{
 				});
 			}));
 			selectedCandidates.splice(selectedCandidates.length,0,...additionalSelectedCandidates);
-			selectedCandidates=lodash.uniq(selectedCandidates).slice(0,candidatesForFinalSelection-selectedCandidates.length);
+			selectedCandidates=lodash.uniq(selectedCandidates).slice(0,candidatesForFinalSelection);
 		}
 		if(this.DEBUG)console.log('Selected candidates',selectedCandidates);
 
