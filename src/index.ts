@@ -56,7 +56,7 @@ export class AICompareCandidates extends Embeddings{
 	rankingTemperature=0.35;
 	rankingRepetitionPenalty=1.5;
 
-	targetSummarisedStringTokenCount=350;
+	targetSummarisedStringTokenCount=300;
 
 	static{
 		env.localModelPath='';
@@ -517,6 +517,7 @@ export class AICompareCandidates extends Embeddings{
 			}));
 			if(this.DEBUG)console.log('Formatted ranking prompt: '+rankingPromptTemplate);
 			let rankingPromptTokens=this.tokeniser.encode(rankingPromptTemplate);
+			if(this.DEBUG)console.log(rankingPromptTokens.length,this.tokeniser.model_max_length);
 			if(rankingPromptTokens.length>this.tokeniser.model_max_length)throw new Error('Ranking instruction prompt is too long for the tokeniser model');
 			try{
 				let rankingArray=await this.generator(rankingPromptTemplate,{
