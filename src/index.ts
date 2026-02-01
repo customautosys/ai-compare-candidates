@@ -302,14 +302,7 @@ export class AICompareCandidates extends Embeddings{
 		candidatesForFinalSelection,
 		candidateIdentifierField
 	}:AICompareCandidates.GenerateRankingInstructionArguments=<AICompareCandidates.GenerateRankingInstructionArguments>{}){
-		return 'Strictly follow these rules:\n'+
-			'1. Rank ONLY the top '+candidatesForFinalSelection+' candidates with one 15-word sentence explaining why\n'+
-			'2. Rank the candidates based on "'+problemDescription.replace(/(\r|\n)/g,' ')+'"\n'+
-			'3. If unclear, say "Insufficient information to determine"\n\n'+
-			'Candidates:\n\n'+summaries.join('\n\n')+'\n\n'+
-			'Format exactly:\n'+
-			'#1. "Full '+lodash.startCase(candidateIdentifierField)+'": 15-word explanation\n'+
-			'#2. ...';
+		return 'Rank only the top '+candidatesForFinalSelection+' candidates by connecting them to "'+problemDescription+'" stating # followed by the candidate number and the full '+lodash.startCase(candidateIdentifierField)+' followed by a 15-word explanation for each ranking. Stop generating text immediately thereafter.\n\nCandidates:\n\n'+summaries.join('\n\n');
 	}
 
 	regexIndexOf(text:string,regex:RegExp,startIndex:number){
