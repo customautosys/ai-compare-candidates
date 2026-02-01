@@ -338,7 +338,7 @@ export class AICompareCandidates extends Embeddings{
 	}
 
 	defaultExtractIdentifiersFromRationale(rationale:string){
-		let regex=/^\s*#\s*\d+\s*\.?\s*"([^"]+)"/gm;
+		let regex=/^\d+?\s*?\p{P}\s*?(.+?)\s*?(-|\.|;|\n)/gmu;
 		let matches:string[]=[];
 		for(let match:RegExpExecArray|null;Array.isArray(match=regex.exec(rationale));)if(match[1])matches.push(match[1]);
 		return matches;
@@ -350,19 +350,37 @@ export class AICompareCandidates extends Embeddings{
 		candidates
 	}:AICompareCandidates.FindCandidateFromIdentifierArguments<Candidate>=<AICompareCandidates.FindCandidateFromIdentifierArguments<Candidate>>{}){
 		if(!identifier||typeof identifier!=='string')identifier=String(identifier);
+		console.log('identifier',identifier);
 		let selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField])===identifier);
-		if(this.DEBUG)console.log('Candidate found based on case-sensitive match');
+		if(selectedCandidate){
+			if(this.DEBUG){
+				console.log('Candidate found based on case-sensitive match',selectedCandidate[candidateIdentifierField]);
+			}
+			return selectedCandidate;
+		}
 		selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase()===identifier.toLowerCase());
-		if(this.DEBUG)console.log('Candidate found based on lowercase match');
-		if(selectedCandidate)return selectedCandidate;
+		if(selectedCandidate){
+			if(this.DEBUG){
+				console.log('Candidate found based on case-sensitive match',selectedCandidate[candidateIdentifierField]);
+			}
+			return selectedCandidate;
+		}
 		selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase().includes(identifier.toLowerCase()));
-		if(this.DEBUG)console.log('Candidate found based on candidate identifier field completely including this identifier (lowercase)');
-		if(selectedCandidate)return selectedCandidate;
+		if(selectedCandidate){
+			if(this.DEBUG){
+				console.log('Candidate found based on case-sensitive match',selectedCandidate[candidateIdentifierField]);
+			}
+			return selectedCandidate;
+		}
 		selectedCandidate=candidates.find(candidate=>identifier.toLowerCase().includes(String(candidate[candidateIdentifierField]).toLowerCase()));
-		if(this.DEBUG)console.log('Candidate found based on this identifier completely including candidate identifier field (lowercase)');
-		if(selectedCandidate)return selectedCandidate;
+		if(selectedCandidate){
+			if(this.DEBUG){
+				console.log('Candidate found based on case-sensitive match',selectedCandidate[candidateIdentifierField]);
+			}
+			return selectedCandidate;
+		}
 		//split by space and find highest number of matches (tie break if it is in same order)
-		let identifierWords=identifier.split(/\s+/g);
+		let identifierWords=identifier.split(/\s+/g).filter(identifierWord=>/\w/.test(identifierWord));
 		if(this.DEBUG)console.log('Identifier words',identifierWords);
 		let selectedCandidates=candidates.map(candidate=>({
 			identifierWordIndices:identifierWords.map(identifierWord=>String(candidate[candidateIdentifierField]).indexOf(identifierWord)),
