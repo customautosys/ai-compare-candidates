@@ -98,7 +98,7 @@ declare class AICompareCandidates extends Embeddings {
     identifier,
     candidateIdentifierField,
     candidates
-  }?: AICompareCandidates.FindCandidateFromIdentifierArguments<Candidate>): Candidate | null;
+  }?: AICompareCandidates.FindCandidateFromIdentifierArguments<Candidate>): NonNullable<Candidate> | null;
   defaultParseSearchAreasResponse(searchAreasResponse: string): string;
   compareCandidates<Candidate>({
     candidates,

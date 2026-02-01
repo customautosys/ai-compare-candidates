@@ -356,39 +356,77 @@ export class AICompareCandidates extends Embeddings{
 		candidateIdentifierField,
 		candidates
 	}:AICompareCandidates.FindCandidateFromIdentifierArguments<Candidate>=<AICompareCandidates.FindCandidateFromIdentifierArguments<Candidate>>{}){
-		let selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase()===identifier.toLowerCase());
+		if(!identifier||typeof identifier!=='string')identifier=String(identifier);
+		let selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField])===identifier);
+		if(this.DEBUG)console.log('Candidate found based on case-sensitive match');
+		selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase()===identifier.toLowerCase());
+		if(this.DEBUG)console.log('Candidate found based on lowercase match');
 		if(selectedCandidate)return selectedCandidate;
 		selectedCandidate=candidates.find(candidate=>String(candidate[candidateIdentifierField]).toLowerCase().includes(identifier.toLowerCase()));
+		if(this.DEBUG)console.log('Candidate found based on candidate identifier field completely including this identifier (lowercase)');
 		if(selectedCandidate)return selectedCandidate;
 		selectedCandidate=candidates.find(candidate=>identifier.toLowerCase().includes(String(candidate[candidateIdentifierField]).toLowerCase()));
+		if(this.DEBUG)console.log('Candidate found based on this identifier completely including candidate identifier field (lowercase)');
 		if(selectedCandidate)return selectedCandidate;
 		//split by space and find highest number of matches (tie break if it is in same order)
 		let identifierWords=identifier.split(/\s+/g);
+		if(this.DEBUG)console.log('Identifier words',identifierWords);
 		let selectedCandidates=candidates.map(candidate=>({
 			identifierWordIndices:identifierWords.map(identifierWord=>String(candidate[candidateIdentifierField]).indexOf(identifierWord)),
 			candidate
-		})).sort((a,b)=>{
-			let aCount=lodash.sumBy(a.identifierWordIndices,aElement=>aElement<0?0:1);
-			let bCount=lodash.sumBy(b.identifierWordIndices,bElement=>bElement<0?0:1);
-			if(aCount!==bCount)return bCount-aCount;
-			if(aCount===0&&bCount===0)return 0;
-			aCount=0;
-			bCount=0;
-			for(let i=0;i<a.identifierWordIndices.length-1;++i){
-				for(let j=i+1;j<a.identifierWordIndices.length;++j){
-					if(a.identifierWordIndices[i]<0||a.identifierWordIndices[j]<0)continue;
-					if(a.identifierWordIndices[i]<a.identifierWordIndices[j])++aCount;
+		})).filter(candidate=>candidate.identifierWordIndices.some(index=>index>=0));
+		if(selectedCandidates.length>1){
+			selectedCandidates.sort((a,b)=>{
+				let aCount=lodash.sumBy(a.identifierWordIndices,aElement=>aElement<0?0:1);
+				let bCount=lodash.sumBy(b.identifierWordIndices,bElement=>bElement<0?0:1);
+				if(this.DEBUG){
+					console.log('a',a);
+					console.log('b',b);
+					console.log('a.identifierWordIndices',a.identifierWordIndices);
+					console.log('b.identifierWordIndices',b.identifierWordIndices);
+					console.log('aCount',aCount);
+					console.log('bCount',bCount);
 				}
-			}
-			for(let i=0;i<b.identifierWordIndices.length-1;++i){
-				for(let j=i+1;j<b.identifierWordIndices.length;++j){
-					if(b.identifierWordIndices[i]<0||b.identifierWordIndices[j]<0)continue;
-					if(b.identifierWordIndices[i]<b.identifierWordIndices[j])++bCount;
+				if(aCount!==bCount)return bCount-aCount;
+				if(aCount===0&&bCount===0)return 0;
+				aCount=0;
+				bCount=0;
+				for(let i=0;i<a.identifierWordIndices.length-1;++i){
+					for(let j=i+1;j<a.identifierWordIndices.length;++j){
+						if(a.identifierWordIndices[i]<0||a.identifierWordIndices[j]<0)continue;
+						if(a.identifierWordIndices[i]<a.identifierWordIndices[j]){
+							if(this.DEBUG){
+								console.log('i',i);
+								console.log('j',j);
+								console.log('a.identifierWordIndices[i]',a.identifierWordIndices[i]);
+								console.log('a.identifierWordIndices[j]',a.identifierWordIndices[j]);
+							}
+							++aCount;
+						}
+					}
 				}
-			}
-			return bCount-aCount;
-		});
-		if(selectedCandidates[0].identifierWordIndices.some(index=>index>=0))return selectedCandidates[0].candidate;
+				for(let i=0;i<b.identifierWordIndices.length-1;++i){
+					for(let j=i+1;j<b.identifierWordIndices.length;++j){
+						if(b.identifierWordIndices[i]<0||b.identifierWordIndices[j]<0)continue;
+						if(b.identifierWordIndices[i]<b.identifierWordIndices[j]){
+							if(this.DEBUG){
+								console.log('i',i);
+								console.log('j',j);
+								console.log('b.identifierWordIndices[i]',b.identifierWordIndices[i]);
+								console.log('b.identifierWordIndices[j]',b.identifierWordIndices[j]);
+							}
+							++bCount;
+						}
+					}
+				}
+				if(this.DEBUG){
+					console.log('aCount',aCount);
+					console.log('bCount',bCount);
+				}
+				return bCount-aCount;
+			});
+		}
+		if(selectedCandidates.length>=1&&selectedCandidates[0].candidate)return selectedCandidates[0].candidate;
 		return null;
 	}
 
