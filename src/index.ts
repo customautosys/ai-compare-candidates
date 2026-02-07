@@ -266,10 +266,11 @@ export class AICompareCandidates extends Embeddings{
 
 	async embedQuery(text:string):Promise<number[]>{
 		await this.checkEmbedderLoaded();
-		return Array.from((await this.embedder?.(text,{
+		if(typeof this.embedder==='function')return Array.from((await this.embedder(text,{
 			pooling:'mean',
 			normalize:true
 		}))?.data);
+		return [];
 	}
 
 	async embedDocuments(texts:string[]):Promise<number[][]>{
