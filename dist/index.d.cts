@@ -1,5 +1,5 @@
 import * as _sroussey_transformers_types_env0 from "@sroussey/transformers/types/env";
-import { FeatureExtractionPipeline, PreTrainedTokenizer, ProgressCallback, ProgressInfo, SummarizationPipeline, TextGenerationPipeline } from "@sroussey/transformers";
+import { FeatureExtractionPipeline, PreTrainedTokenizer, ProgressCallback, ProgressInfo, SummarizationPipeline, TextGenerationConfig, TextGenerationPipeline } from "@sroussey/transformers";
 import { Embeddings } from "@langchain/core/embeddings";
 
 //#region src/index.d.ts
@@ -77,6 +77,12 @@ declare class AICompareCandidates extends Embeddings {
   embedQuery(text: string): Promise<number[]>;
   embedDocuments(texts: string[]): Promise<number[][]>;
   defaultGeneratePromptTemplate(prompt: string): string;
+  defaultPerformGeneration({
+    generator,
+    tokeniser,
+    prompt,
+    textGenerationConfig
+  }?: AICompareCandidates.PerformGenerationArguments): Promise<string>;
   defaultGenerateSearchAreasInstruction(problemDescription: string): string;
   defaultConvertCandidateToDocument<Candidate>({
     candidate,
@@ -103,6 +109,7 @@ declare class AICompareCandidates extends Embeddings {
   compareCandidates<Candidate>({
     candidates,
     problemDescription,
+    performGeneration,
     generateSearchAreasInstruction,
     parseSearchAreasResponse,
     convertCandidateToDocument,
@@ -130,6 +137,7 @@ declare namespace AICompareCandidates {
   interface CompareArguments<Candidate> {
     candidates: Candidate[];
     problemDescription: string;
+    performGeneration?: (performGenerationArguments: PerformGenerationArguments) => Promise<string>;
     generateSearchAreasInstruction?: (problemDescription: string) => string;
     parseSearchAreasResponse?: (searchAreasResponse: string) => string;
     convertCandidateToDocument?: (convertCandidateToDocumentArguments: ConvertCandidateToDocumentArguments<Candidate>) => string;
@@ -143,6 +151,12 @@ declare namespace AICompareCandidates {
     getSummarisableSubstringIndices?: (candidateDocument: string) => SummarisableSubstringIndices;
     generatePromptTemplate?: (prompt: string) => string;
     skipRationale?: boolean;
+  }
+  interface PerformGenerationArguments {
+    generator: TextGenerationPipeline;
+    tokeniser: PreTrainedTokenizer;
+    prompt: string;
+    textGenerationConfig?: Partial<TextGenerationConfig>;
   }
   interface ConvertCandidateToDocumentArguments<Candidate> {
     candidate: Candidate;

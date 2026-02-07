@@ -9,7 +9,8 @@ import{
 	FeatureExtractionPipeline,
 	PreTrainedTokenizer,
 	TextGenerationConfig,
-	TextGenerationSingle
+	TextGenerationSingle,
+	TextStreamer
 }from '@sroussey/transformers';
 import {MemoryVectorStore} from '@langchain/classic/vectorstores/memory';
 import {Embeddings} from '@langchain/core/embeddings';
@@ -21,7 +22,7 @@ export class AICompareCandidates extends Embeddings{
 	DEBUG=true;
 
 	generator:TextGenerationPipeline|null=null;
-	generatorModelName='Xenova/LaMini-GPT-774M';
+	generatorModelName='Xenova/Phi-3-mini-4k-instruct_fp16';
 	generatorPromise:Promise<TextGenerationPipeline>|null=null;
 	generatorProgressInfo:ProgressInfo=<ProgressInfo>{};
 	generatorProgressCallback:ProgressCallback|null=null;
@@ -276,10 +277,36 @@ export class AICompareCandidates extends Embeddings{
 	}
 
 	defaultGeneratePromptTemplate(prompt:string){
-		return 'Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n'+
-			'### Instruction:\n'+
-			prompt+
-			'\n\n### Response:';
+		return prompt;
+	}
+
+	async defaultPerformGeneration({
+		generator,
+		tokeniser,
+		prompt='',
+		textGenerationConfig={}
+	}:AICompareCandidates.PerformGenerationArguments=<AICompareCandidates.PerformGenerationArguments>{}){
+		let errors='';
+		if(!generator)errors+='No generator provided.';
+		if(!tokeniser)errors+=(errors?'\n':'')+'No tokeniser provided.';
+		if(typeof prompt!=='string'||!prompt)errors+=(errors?'\n':'')+'No valid prompt provided.';
+		if(errors)throw new Error(errors);
+		let messages=[{
+			role:'user',
+			content:prompt
+		}];
+		let streamer=new TextStreamer(tokeniser,{
+			skip_prompt:true
+		});
+		if(!textGenerationConfig.pad_token_id)textGenerationConfig.pad_token_id=tokeniser.pad_token_id??tokeniser.sep_token_id??0;
+		if(!textGenerationConfig.eos_token_id)textGenerationConfig.eos_token_id=tokeniser.sep_token_id??2;
+		let output=await generator(messages,textGenerationConfig);
+		let outputObject=Array.isArray(output?.[0])?output?.[0]?.[0]:output?.[0];
+		if(!outputObject.generated_text)throw new Error('No generated text for search areas');
+		if(typeof outputObject.generated_text==='string')return outputObject.generated_text;
+		let content=outputObject.generated_text?.at(-1)?.content;
+		if(typeof content!=='string'||!content)throw new Error('No content in generated text');
+		return content;
 	}
 
 	defaultGenerateSearchAreasInstruction(problemDescription:string){
@@ -451,6 +478,7 @@ export class AICompareCandidates extends Embeddings{
 	async compareCandidates<Candidate>({
 		candidates,
 		problemDescription='',
+		performGeneration=this.defaultPerformGeneration.bind(this),
 		generateSearchAreasInstruction=this.defaultGenerateSearchAreasInstruction.bind(this),
 		parseSearchAreasResponse=this.defaultParseSearchAreasResponse.bind(this),
 		convertCandidateToDocument=this.defaultConvertCandidateToDocument.bind(this),
@@ -502,19 +530,18 @@ export class AICompareCandidates extends Embeddings{
 
 		await this.checkGeneratorLoaded();
 		if(!this.generator)return;
-		let pad_token_id=this.tokeniser.pad_token_id??this.tokeniser.sep_token_id??0;
-		let eos_token_id=this.tokeniser.sep_token_id??2;
-		let searchAreasReplyArray=await this.generator(searchAreasPromptTemplate,{
-			max_new_tokens:this.generateSearchAreasMaxNewTokens,
-			temperature:this.generateSearchAreasTemperature,
-			repetition_penalty:this.generateSearchAreasRepetitionPenalty,
-			pad_token_id,
-			eos_token_id
+		let generatedText=await performGeneration({
+			generator:this.generator,
+			tokeniser:this.tokeniser,
+			prompt:searchAreasPromptTemplate,
+			textGenerationConfig:{
+				max_new_tokens:this.generateSearchAreasMaxNewTokens,
+				temperature:this.generateSearchAreasTemperature,
+				repetition_penalty:this.generateSearchAreasRepetitionPenalty
+			}
 		});
-		let searchAreasReply=Array.isArray(searchAreasReplyArray?.[0])?searchAreasReplyArray?.[0]?.[0]:searchAreasReplyArray?.[0];
-		if(!searchAreasReply.generated_text)throw new Error('No generated text for search areas');
-		if(this.DEBUG)console.log('Generated search areas response: '+searchAreasReply.generated_text);
-		let vectorSearchQuery=parseSearchAreasResponse(Array.isArray(searchAreasReply.generated_text)?searchAreasReply.generated_text.join('\n\n'):String(searchAreasReply.generated_text));
+		if(this.DEBUG)console.log('Generated search areas response: '+generatedText);
+		let vectorSearchQuery=parseSearchAreasResponse(generatedText);
 		//generally the first sentence has the greatest relevance to the actual prompt
 		//if(vectorSearchQuery.includes('.'))vectorSearchQuery=vectorSearchQuery.split('.')[0].trim();
 		if(this.DEBUG)console.log('Vector search query: '+vectorSearchQuery);
@@ -569,12 +596,15 @@ export class AICompareCandidates extends Embeddings{
 			if(this.DEBUG)console.log(rankingPromptTokens.length,this.tokeniser.model_max_length);
 			if(rankingPromptTokens.length>this.tokeniser.model_max_length)throw new Error('Ranking instruction prompt is too long for the tokeniser model');
 			try{
-				let rankingArray=await this.generator(rankingPromptTemplate,{
-					max_new_tokens:this.rankingMaxNewTokens,
-					temperature:this.rankingTemperature,
-					repetition_penalty:this.rankingRepetitionPenalty,
-					pad_token_id,
-					eos_token_id
+				let rankingArray=await performGeneration({
+					generator:this.generator,
+					tokeniser:this.tokeniser,
+					prompt:rankingPromptTemplate,
+					textGenerationConfig:{
+						max_new_tokens:this.rankingMaxNewTokens,
+						temperature:this.rankingTemperature,
+						repetition_penalty:this.rankingRepetitionPenalty
+					}
 				});
 				let ranking=Array.isArray(rankingArray?.[0])?rankingArray?.[0]?.[0]:rankingArray[0];
 				rationale=ranking.generated_text.toString().trim().replace(/(\*\*)|(<\/?s>)|(\[.*?\])\s*/g, '');
@@ -641,6 +671,7 @@ export namespace AICompareCandidates{
 	export interface CompareArguments<Candidate>{
 		candidates:Candidate[];
 		problemDescription:string;
+		performGeneration?:(performGenerationArguments:PerformGenerationArguments)=>Promise<string>;
 		generateSearchAreasInstruction?:(problemDescription:string)=>string;
 		parseSearchAreasResponse?:(searchAreasResponse:string)=>string;
 		convertCandidateToDocument?:(convertCandidateToDocumentArguments:ConvertCandidateToDocumentArguments<Candidate>)=>string;
@@ -654,6 +685,13 @@ export namespace AICompareCandidates{
 		getSummarisableSubstringIndices?:(candidateDocument:string)=>SummarisableSubstringIndices;
 		generatePromptTemplate?:(prompt:string)=>string;
 		skipRationale?:boolean;
+	};
+
+	export interface PerformGenerationArguments{
+		generator:TextGenerationPipeline;
+		tokeniser:PreTrainedTokenizer;
+		prompt:string;
+		textGenerationConfig?:Partial<TextGenerationConfig>;
 	};
 
 	export interface ConvertCandidateToDocumentArguments<Candidate>{
