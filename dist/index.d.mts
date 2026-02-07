@@ -106,6 +106,7 @@ declare class AICompareCandidates extends Embeddings {
     candidates
   }?: AICompareCandidates.FindCandidateFromIdentifierArguments<Candidate>): NonNullable<Candidate> | null;
   defaultParseSearchAreasResponse(searchAreasResponse: string): string;
+  errorMessage(error: any): any;
   compareCandidates<Candidate>({
     candidates,
     problemDescription,
@@ -180,6 +181,7 @@ declare namespace AICompareCandidates {
   interface CompareCandidatesReturn<Candidate> {
     selectedCandidates: Candidate[];
     rationale: string;
+    rationaleError?: string;
   }
 }
 //#endregion

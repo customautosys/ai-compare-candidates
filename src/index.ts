@@ -22,7 +22,7 @@ export class AICompareCandidates extends Embeddings{
 	DEBUG=true;
 
 	generator:TextGenerationPipeline|null=null;
-	generatorModelName='Xenova/Phi-3-mini-4k-instruct_fp16';
+	generatorModelName='Xenova/Phi-3-mini-4k-instruct';
 	generatorPromise:Promise<TextGenerationPipeline>|null=null;
 	generatorProgressInfo:ProgressInfo=<ProgressInfo>{};
 	generatorProgressCallback:ProgressCallback|null=null;
@@ -301,8 +301,9 @@ export class AICompareCandidates extends Embeddings{
 		if(!textGenerationConfig.pad_token_id)textGenerationConfig.pad_token_id=tokeniser.pad_token_id??tokeniser.sep_token_id??0;
 		if(!textGenerationConfig.eos_token_id)textGenerationConfig.eos_token_id=tokeniser.sep_token_id??2;
 		let output=await generator(messages,textGenerationConfig);
+		if(this.DEBUG)console.log(output);
 		let outputObject=Array.isArray(output?.[0])?output?.[0]?.[0]:output?.[0];
-		if(!outputObject.generated_text)throw new Error('No generated text for search areas');
+		if(!outputObject.generated_text)throw new Error('No generated text');
 		if(typeof outputObject.generated_text==='string')return outputObject.generated_text;
 		let content=outputObject.generated_text?.at(-1)?.content;
 		if(typeof content!=='string'||!content)throw new Error('No content in generated text');
@@ -475,6 +476,10 @@ export class AICompareCandidates extends Embeddings{
 		return String(searchAreasResponse).substring(searchAreasResponseIndex).trim();
 	}
 
+	errorMessage(error:any){
+		return typeof error?.response?.data==='string'?error.response.data:error?.response?.data?jsan.stringify(error.response.data):typeof error?.message==='string'?error.message:error?.message?jsan.stringify(error.message):typeof error==='string'?error:jsan.stringify(error);
+	}
+
 	async compareCandidates<Candidate>({
 		candidates,
 		problemDescription='',
@@ -583,6 +588,8 @@ export class AICompareCandidates extends Embeddings{
 		}else{
 			summaries=queryResult.map(result=>result.pageContent);
 		}
+		
+		let rationaleError='';
 
 		if(!skipRationale){
 			let rankingPromptTemplate=generatePromptTemplate(generateRankingInstruction({
@@ -596,7 +603,7 @@ export class AICompareCandidates extends Embeddings{
 			if(this.DEBUG)console.log(rankingPromptTokens.length,this.tokeniser.model_max_length);
 			if(rankingPromptTokens.length>this.tokeniser.model_max_length)throw new Error('Ranking instruction prompt is too long for the tokeniser model');
 			try{
-				let rankingArray=await performGeneration({
+				let ranking=await performGeneration({
 					generator:this.generator,
 					tokeniser:this.tokeniser,
 					prompt:rankingPromptTemplate,
@@ -606,8 +613,7 @@ export class AICompareCandidates extends Embeddings{
 						repetition_penalty:this.rankingRepetitionPenalty
 					}
 				});
-				let ranking=Array.isArray(rankingArray?.[0])?rankingArray?.[0]?.[0]:rankingArray[0];
-				rationale=ranking.generated_text.toString().trim().replace(/(\*\*)|(<\/?s>)|(\[.*?\])\s*/g, '');
+				rationale=ranking.trim().replace(/(\*\*)|(<\/?s>)|(\[.*?\])\s*/g, '');
 				if(this.DEBUG)console.log('Generated rationale: '+rationale);
 				let rationaleResponseIndex=rationale.indexOf('### Response:');
 				if(rationaleResponseIndex>=0)rationaleResponseIndex+='### Response:'.length;
@@ -616,6 +622,7 @@ export class AICompareCandidates extends Embeddings{
 				//if(!rationale)throw new Error('No rationale generated');
 			}catch(error){
 				console.log(error);
+				rationaleError=this.errorMessage(error);
 				rationale='';
 			}
 		}
@@ -652,6 +659,7 @@ export class AICompareCandidates extends Embeddings{
 
 		return{
 			rationale,
+			...(rationaleError?{rationaleError}:{}),
 			selectedCandidates
 		};
 	}
@@ -719,7 +727,8 @@ export namespace AICompareCandidates{
 
 	export interface CompareCandidatesReturn<Candidate>{
 		selectedCandidates:Candidate[],
-		rationale:string
+		rationale:string,
+		rationaleError?:string
 	};
 };
 
