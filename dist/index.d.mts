@@ -182,6 +182,7 @@ declare namespace AICompareCandidates {
     selectedCandidates: Candidate[];
     rationale: string;
     rationaleError?: string;
+    summaries: string[];
   }
 }
 //#endregion

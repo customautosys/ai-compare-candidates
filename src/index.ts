@@ -660,6 +660,7 @@ export class AICompareCandidates extends Embeddings{
 
 		return{
 			rationale,
+			summaries,
 			...(rationaleError?{rationaleError}:{}),
 			selectedCandidates
 		};
@@ -729,7 +730,8 @@ export namespace AICompareCandidates{
 	export interface CompareCandidatesReturn<Candidate>{
 		selectedCandidates:Candidate[],
 		rationale:string,
-		rationaleError?:string
+		rationaleError?:string,
+		summaries:string[]
 	};
 };
 
