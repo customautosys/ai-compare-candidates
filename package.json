@@ -1,6 +1,6 @@
 {
 	"name": "ai-compare-candidates",
-	"version": "0.0.21",
+	"version": "0.0.22",
 	"description": "Compare and rank multiple candidate objects using artificial intelligence retrieval augmented generation, providing the rationale",
 	"main": "dist/index.mjs",
 	"scripts": {

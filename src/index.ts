@@ -497,7 +497,8 @@ export class AICompareCandidates extends Embeddings{
 		findCandidateFromIdentifier=this.defaultFindCandidateFromIdentifier.bind(this),
 		getSummarisableSubstringIndices,
 		generatePromptTemplate=this.defaultGeneratePromptTemplate.bind(this),
-		skipRationale=false
+		skipRationale=false,
+		parallelSummarisation=true
 	}:AICompareCandidates.CompareArguments<Candidate>=<AICompareCandidates.CompareArguments<Candidate>>{}):Promise<AICompareCandidates.CompareCandidatesReturn<Candidate>|void>{
 		if(!Array.isArray(candidates)||candidates.length<=0)throw new Error('No candidates provided');
 		candidatesForInitialSelection=lodash.toSafeInteger(candidatesForInitialSelection);
@@ -559,33 +560,70 @@ export class AICompareCandidates extends Embeddings{
 		if(queryResult.some(result=>result.pageContent.trim().split(/\s+/).length>this.targetSummarisedStringTokenCount)){
 			await this.checkSummariserLoaded();
 			if(!this.summariser)return;
-			summaries=(await Promise.allSettled(queryResult.map(async result=>{
-				if(!result.pageContent||typeof result.pageContent!=='string')return '';
-				if(result.pageContent.trim().split(/\s+/).length<=this.targetSummarisedStringTokenCount)return result.pageContent;
-				let summarisableSubstringIndices:AICompareCandidates.SummarisableSubstringIndices={
-					start:0,
-					end:result.pageContent.length
-				};
-				if(getSummarisableSubstringIndices)Object.assign(summarisableSubstringIndices,getSummarisableSubstringIndices(result.pageContent));
-				summarisableSubstringIndices.start=lodash.clamp(lodash.toSafeInteger(summarisableSubstringIndices.start),0,result.pageContent.length);
-				summarisableSubstringIndices.end=lodash.clamp(lodash.toSafeInteger(summarisableSubstringIndices.end),0,result.pageContent.length);
-				if(this.DEBUG)console.log(summarisableSubstringIndices);
-				let summarisableSubstring=result.pageContent.substring(summarisableSubstringIndices.start,summarisableSubstringIndices.end);
-				if(this.DEBUG)console.log(summarisableSubstring);
-				let contentBefore=result.pageContent.substring(0,summarisableSubstringIndices.start);
-				let contentAfter=result.pageContent.substring(summarisableSubstringIndices.end);
-				let wordsWithoutSummarisable=contentBefore.split(/\s+/).length+contentAfter.split(/\s+/).length;
-				let targetSummarisedSubstringTokenCount=Math.max(1,this.targetSummarisedStringTokenCount-wordsWithoutSummarisable);
-				if(this.DEBUG)console.log(wordsWithoutSummarisable,targetSummarisedSubstringTokenCount);
-				let summarisedSubstringArray=await this.summariser?.(summarisableSubstring,<TextGenerationConfig>{
-					max_length:targetSummarisedSubstringTokenCount
-				});
-				let summarisedSubstring=Array.isArray(summarisedSubstringArray?.[0])?summarisedSubstringArray?.[0]?.[0]:summarisedSubstringArray?.[0];
-				if(this.DEBUG)console.log(summarisedSubstringArray,summarisedSubstring,summarisedSubstring?.summary_text??'',(summarisedSubstring?.summary_text??'').split(/\s+/).slice(0,targetSummarisedSubstringTokenCount).join(' '));
-				let summarisedString=contentBefore+(summarisedSubstring?.summary_text??'').split(/\s+/).slice(0,targetSummarisedSubstringTokenCount).join(' ').trim()+contentAfter;
-				if(this.DEBUG)console.log('Summarised candidate: '+summarisedString);
-				return summarisedString;
-			}))).filter(result=>result.status==='fulfilled'&&result.value).map(result=>(result as PromiseFulfilledResult<string>).value);
+			if(parallelSummarisation){
+				summaries=(await Promise.allSettled(queryResult.map(async result=>{
+					if(!result.pageContent||typeof result.pageContent!=='string')return '';
+					if(result.pageContent.trim().split(/\s+/).length<=this.targetSummarisedStringTokenCount)return result.pageContent;
+					let summarisableSubstringIndices:AICompareCandidates.SummarisableSubstringIndices={
+						start:0,
+						end:result.pageContent.length
+					};
+					if(getSummarisableSubstringIndices)Object.assign(summarisableSubstringIndices,getSummarisableSubstringIndices(result.pageContent));
+					summarisableSubstringIndices.start=lodash.clamp(lodash.toSafeInteger(summarisableSubstringIndices.start),0,result.pageContent.length);
+					summarisableSubstringIndices.end=lodash.clamp(lodash.toSafeInteger(summarisableSubstringIndices.end),0,result.pageContent.length);
+					if(this.DEBUG)console.log(summarisableSubstringIndices);
+					let summarisableSubstring=result.pageContent.substring(summarisableSubstringIndices.start,summarisableSubstringIndices.end);
+					if(this.DEBUG)console.log(summarisableSubstring);
+					let contentBefore=result.pageContent.substring(0,summarisableSubstringIndices.start);
+					let contentAfter=result.pageContent.substring(summarisableSubstringIndices.end);
+					let wordsWithoutSummarisable=contentBefore.split(/\s+/).length+contentAfter.split(/\s+/).length;
+					let targetSummarisedSubstringTokenCount=Math.max(1,this.targetSummarisedStringTokenCount-wordsWithoutSummarisable);
+					if(this.DEBUG)console.log(wordsWithoutSummarisable,targetSummarisedSubstringTokenCount);
+					let summarisedSubstringArray=await this.summariser?.(summarisableSubstring,<TextGenerationConfig>{
+						max_length:targetSummarisedSubstringTokenCount
+					});
+					let summarisedSubstring=Array.isArray(summarisedSubstringArray?.[0])?summarisedSubstringArray?.[0]?.[0]:summarisedSubstringArray?.[0];
+					if(this.DEBUG)console.log(summarisedSubstringArray,summarisedSubstring,summarisedSubstring?.summary_text??'',(summarisedSubstring?.summary_text??'').split(/\s+/).slice(0,targetSummarisedSubstringTokenCount).join(' '));
+					let summarisedString=contentBefore+(summarisedSubstring?.summary_text??'').split(/\s+/).slice(0,targetSummarisedSubstringTokenCount).join(' ').trim()+contentAfter;
+					if(this.DEBUG)console.log('Summarised candidate: '+summarisedString);
+					return summarisedString;
+				}))).filter(result=>result.status==='fulfilled'&&result.value).map(result=>(result as PromiseFulfilledResult<string>).value);
+			}else{
+				for(let result of queryResult){
+					try{
+						if(!result.pageContent||typeof result.pageContent!=='string')continue;
+						if(result.pageContent.trim().split(/\s+/).length<=this.targetSummarisedStringTokenCount){
+							summaries.push(result.pageContent);
+							continue;
+						}
+						let summarisableSubstringIndices:AICompareCandidates.SummarisableSubstringIndices={
+							start:0,
+							end:result.pageContent.length
+						};
+						if(getSummarisableSubstringIndices)Object.assign(summarisableSubstringIndices,getSummarisableSubstringIndices(result.pageContent));
+						summarisableSubstringIndices.start=lodash.clamp(lodash.toSafeInteger(summarisableSubstringIndices.start),0,result.pageContent.length);
+						summarisableSubstringIndices.end=lodash.clamp(lodash.toSafeInteger(summarisableSubstringIndices.end),0,result.pageContent.length);
+						if(this.DEBUG)console.log(summarisableSubstringIndices);
+						let summarisableSubstring=result.pageContent.substring(summarisableSubstringIndices.start,summarisableSubstringIndices.end);
+						if(this.DEBUG)console.log(summarisableSubstring);
+						let contentBefore=result.pageContent.substring(0,summarisableSubstringIndices.start);
+						let contentAfter=result.pageContent.substring(summarisableSubstringIndices.end);
+						let wordsWithoutSummarisable=contentBefore.split(/\s+/).length+contentAfter.split(/\s+/).length;
+						let targetSummarisedSubstringTokenCount=Math.max(1,this.targetSummarisedStringTokenCount-wordsWithoutSummarisable);
+						if(this.DEBUG)console.log(wordsWithoutSummarisable,targetSummarisedSubstringTokenCount);
+						let summarisedSubstringArray=await this.summariser?.(summarisableSubstring,<TextGenerationConfig>{
+							max_length:targetSummarisedSubstringTokenCount
+						});
+						let summarisedSubstring=Array.isArray(summarisedSubstringArray?.[0])?summarisedSubstringArray?.[0]?.[0]:summarisedSubstringArray?.[0];
+						if(this.DEBUG)console.log(summarisedSubstringArray,summarisedSubstring,summarisedSubstring?.summary_text??'',(summarisedSubstring?.summary_text??'').split(/\s+/).slice(0,targetSummarisedSubstringTokenCount).join(' '));
+						let summarisedString=contentBefore+(summarisedSubstring?.summary_text??'').split(/\s+/).slice(0,targetSummarisedSubstringTokenCount).join(' ').trim()+contentAfter;
+						if(this.DEBUG)console.log('Summarised candidate: '+summarisedString);
+						summaries.push(summarisedString);
+					}catch(error){
+						console.log(error);
+					}
+				}
+			}
 		}else{
 			summaries=queryResult.map(result=>result.pageContent);
 		}
@@ -695,6 +733,7 @@ export namespace AICompareCandidates{
 		getSummarisableSubstringIndices?:(candidateDocument:string)=>SummarisableSubstringIndices;
 		generatePromptTemplate?:(prompt:string)=>string;
 		skipRationale?:boolean;
+		parallelSummarisation?:boolean;
 	};
 
 	export interface PerformGenerationArguments{

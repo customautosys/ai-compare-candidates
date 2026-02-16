@@ -123,7 +123,8 @@ declare class AICompareCandidates extends Embeddings {
     findCandidateFromIdentifier,
     getSummarisableSubstringIndices,
     generatePromptTemplate,
-    skipRationale
+    skipRationale,
+    parallelSummarisation
   }?: AICompareCandidates.CompareArguments<Candidate>): Promise<AICompareCandidates.CompareCandidatesReturn<Candidate> | void>;
 }
 declare namespace AICompareCandidates {
@@ -152,6 +153,7 @@ declare namespace AICompareCandidates {
     getSummarisableSubstringIndices?: (candidateDocument: string) => SummarisableSubstringIndices;
     generatePromptTemplate?: (prompt: string) => string;
     skipRationale?: boolean;
+    parallelSummarisation?: boolean;
   }
   interface PerformGenerationArguments {
     generator: TextGenerationPipeline;
