@@ -621,6 +621,7 @@ export class AICompareCandidates extends Embeddings{
 						summaries.push(summarisedString);
 					}catch(error){
 						console.log(error);
+						if(this.DEBUG)console.log(this.summariser,typeof this.summariser);
 					}
 				}
 			}
