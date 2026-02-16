@@ -579,7 +579,8 @@ export class AICompareCandidates extends Embeddings{
 					let wordsWithoutSummarisable=contentBefore.split(/\s+/).length+contentAfter.split(/\s+/).length;
 					let targetSummarisedSubstringTokenCount=Math.max(1,this.targetSummarisedStringTokenCount-wordsWithoutSummarisable);
 					if(this.DEBUG)console.log(wordsWithoutSummarisable,targetSummarisedSubstringTokenCount);
-					let summarisedSubstringArray=await this.summariser?.(summarisableSubstring,<TextGenerationConfig>{
+					if(!this.summariser)return contentBefore+contentAfter;
+					let summarisedSubstringArray=await this.summariser(summarisableSubstring,<TextGenerationConfig>{
 						max_length:targetSummarisedSubstringTokenCount
 					});
 					let summarisedSubstring=Array.isArray(summarisedSubstringArray?.[0])?summarisedSubstringArray?.[0]?.[0]:summarisedSubstringArray?.[0];
@@ -612,7 +613,7 @@ export class AICompareCandidates extends Embeddings{
 						let targetSummarisedSubstringTokenCount=Math.max(1,this.targetSummarisedStringTokenCount-wordsWithoutSummarisable);
 						if(this.DEBUG)console.log(wordsWithoutSummarisable,targetSummarisedSubstringTokenCount);
 						if(this.DEBUG)console.log(this.summariser,typeof this.summariser,this.summariser.call);
-						let summarisedSubstringArray=await this.summariser?.(summarisableSubstring,<TextGenerationConfig>{
+						let summarisedSubstringArray=await this.summariser(summarisableSubstring,<TextGenerationConfig>{
 							max_length:targetSummarisedSubstringTokenCount
 						});
 						let summarisedSubstring=Array.isArray(summarisedSubstringArray?.[0])?summarisedSubstringArray?.[0]?.[0]:summarisedSubstringArray?.[0];
