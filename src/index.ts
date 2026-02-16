@@ -611,6 +611,7 @@ export class AICompareCandidates extends Embeddings{
 						let wordsWithoutSummarisable=contentBefore.split(/\s+/).length+contentAfter.split(/\s+/).length;
 						let targetSummarisedSubstringTokenCount=Math.max(1,this.targetSummarisedStringTokenCount-wordsWithoutSummarisable);
 						if(this.DEBUG)console.log(wordsWithoutSummarisable,targetSummarisedSubstringTokenCount);
+						if(this.DEBUG)console.log(this.summariser,typeof this.summariser,this.summariser.call);
 						let summarisedSubstringArray=await this.summariser?.(summarisableSubstring,<TextGenerationConfig>{
 							max_length:targetSummarisedSubstringTokenCount
 						});
@@ -621,7 +622,6 @@ export class AICompareCandidates extends Embeddings{
 						summaries.push(summarisedString);
 					}catch(error){
 						console.log(error);
-						if(this.DEBUG)console.log(this.summariser,typeof this.summariser);
 					}
 				}
 			}
